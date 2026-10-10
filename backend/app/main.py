@@ -1,5 +1,6 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from sqlalchemy import inspect, text
 
@@ -36,8 +37,8 @@ app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
     description="Enterprise Multi-Tenant AI Chatbot Platform with Strict Tenant Isolation, RAG, and Audit Telemetry.",
-    docs_url="/docs",
-    redoc_url="/redoc"
+    docs_url="/docs" if settings.ENVIRONMENT.lower() != "production" else None,
+    redoc_url="/redoc" if settings.ENVIRONMENT.lower() != "production" else None
 )
 
 # CORS configuration
@@ -48,6 +49,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response: Response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    if settings.ENVIRONMENT.lower() == "production":
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return response
 
 # Register API Routers
 app.include_router(auth_router, prefix=settings.API_V1_PREFIX)
@@ -65,8 +78,8 @@ def health_check(db: Session = Depends(get_db)):
     db_status = "connected"
     try:
         db.execute(text("SELECT 1"))
-    except Exception as e:
-        db_status = f"error: {str(e)}"
+    except Exception:
+        db_status = "error"
 
     return {
         "status": "healthy" if db_status == "connected" else "degraded",
@@ -84,5 +97,5 @@ def root():
         "name": settings.PROJECT_NAME,
         "version": settings.VERSION,
         "status": "online",
-        "documentation": "/docs"
+        "documentation": "/docs" if settings.ENVIRONMENT.lower() != "production" else None
     }

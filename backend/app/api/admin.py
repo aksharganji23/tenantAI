@@ -131,7 +131,7 @@ def simulate_cross_tenant_attack(
     source_tenant_slug: str = "greenleaf",
     target_tenant_slug: str = "technova",
     resource_type: str = "document",  # "document" or "conversation"
-    admin: User = Depends(get_current_user),
+    admin: User = Depends(require_superadmin),
     db: Session = Depends(get_db)
 ):
     """
@@ -140,6 +140,11 @@ def simulate_cross_tenant_attack(
     directly requests a private resource belonging to target_tenant.
     Proves that authorization strictly rejects access (404/403) and logs a security violation.
     """
+    if source_tenant_slug == target_tenant_slug:
+        raise HTTPException(status_code=400, detail="Source and target tenants must differ")
+    if resource_type not in {"document", "conversation"}:
+        raise HTTPException(status_code=400, detail="Unsupported resource type")
+
     attacker_tenant = db.query(Tenant).filter(Tenant.slug == source_tenant_slug).first()
     target_tenant = db.query(Tenant).filter(Tenant.slug == target_tenant_slug).first()
 

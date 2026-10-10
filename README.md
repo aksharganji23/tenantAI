@@ -212,6 +212,18 @@ Services:
 
 The backend is deployable as a FastAPI container and the frontend as a Next.js container. Use managed PostgreSQL for production, persistent object storage for uploaded documents, a managed SMTP provider, and a worker-capable service if document processing becomes asynchronous. Configure `DATABASE_URL`, `SECRET_KEY`, `CORS_ORIGINS`, `STORAGE_DIR` or object storage settings, SMTP variables, `GEMINI_API_KEY`/`OPENAI_API_KEY` as applicable, and `NEXT_PUBLIC_API_URL`. Do not run the cleanup utility against production until the matching tenant list has been reviewed and the generated backup is verified.
 
+### Production security checklist
+
+- Generate unique high-entropy `SECRET_KEY`, `POSTGRES_PASSWORD`, and database credentials for each environment; never use values from source control.
+- Set `ENVIRONMENT=production`; this disables interactive API documentation and enables HSTS.
+- Set `CORS_ORIGINS` to the exact frontend origin(s). Wildcard origins are rejected when credentials are enabled.
+- Keep `/api/v1/logs` limited to tenant administrators; responses redact email addresses, IP addresses, and chat prompt content.
+- Conversation history is private to its owner, including users in the same tenant.
+- The IDOR simulator requires SuperAdmin access and is intended for controlled jury demonstrations only.
+- Put uploaded files in private persistent object storage and scan/validate files before processing.
+- Add managed rate limiting/WAF rules for login, OTP, uploads, chat, and public registration before internet exposure.
+- Run dependency vulnerability scans (`pip-audit`, `npm audit`, and Dependabot) in CI and apply security updates promptly.
+
 Telegram integration is not present in the inherited repository; no bot token, duplicate database, or unverified integration has been fabricated. The existing backend service and tenant-scoped RAG APIs are the integration points for a follow-up bot implementation.
 
 ## 🏆 Hackathon Priority Compliance Matrix

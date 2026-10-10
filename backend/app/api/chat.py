@@ -39,7 +39,8 @@ def send_chat_message(
     if chat_req.conversation_id:
         conv = db.query(Conversation).filter(
             Conversation.id == chat_req.conversation_id,
-            Conversation.tenant_id == tenant_id
+            Conversation.tenant_id == tenant_id,
+            Conversation.user_id == current_user.id
         ).first()
 
         if not conv:
@@ -121,7 +122,7 @@ def send_chat_message(
         latency_ms=rag_result["latency_ms"],
         tokens_used=rag_result["tokens_used"],
         model_name=rag_result["model_name"],
-        details=f"Q: '{chat_req.message[:50]}...' | Citations: {len(rag_result['citations'])}",
+        details=f"Chat query completed | Citations: {len(rag_result['citations'])}",
         ip_address=client_ip
     )
 
@@ -180,7 +181,8 @@ def get_conversation_messages(
     """
     conv = db.query(Conversation).filter(
         Conversation.id == conv_id,
-        Conversation.tenant_id == tenant_id
+        Conversation.tenant_id == tenant_id,
+        Conversation.user_id == current_user.id
     ).first()
 
     if not conv:
@@ -243,7 +245,8 @@ def delete_conversation(
     """Delete a conversation strictly within caller's tenant."""
     conv = db.query(Conversation).filter(
         Conversation.id == conv_id,
-        Conversation.tenant_id == tenant_id
+        Conversation.tenant_id == tenant_id,
+        Conversation.user_id == current_user.id
     ).first()
 
     if not conv:

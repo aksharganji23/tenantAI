@@ -47,7 +47,9 @@ export default function DashboardPage() {
         const [docs, convs, logs] = await Promise.all([
           api.documents.list(),
           api.chat.listConversations(),
-          api.logs.getLogs({ limit: 6 }),
+          user?.role === 'tenant_admin' || user?.role === 'superadmin'
+            ? api.logs.getLogs({ limit: 6 })
+            : Promise.resolve([]),
         ]);
         setDocuments(docs);
         setConversations(convs);

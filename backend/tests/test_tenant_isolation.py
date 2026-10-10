@@ -117,3 +117,32 @@ def test_cross_tenant_vector_search_leak_prevention(client, greenleaf_user_token
     # Answer should state it cannot find information in GreenLeaf Retail
     content = data["content"]
     assert "could not find information" in content.lower() or "greenleaf" in content.lower()
+
+
+def test_same_tenant_conversation_is_private_to_owner(client, technova_admin_token, technova_user_token):
+    chat_resp = client.post(
+        "/api/v1/chat/message",
+        headers={"Authorization": f"Bearer {technova_admin_token}"},
+        json={"message": "Private administrator question"}
+    )
+    assert chat_resp.status_code == 200
+    conv_id = chat_resp.json()["conversation_id"]
+
+    read_resp = client.get(
+        f"/api/v1/chat/conversations/{conv_id}/messages",
+        headers={"Authorization": f"Bearer {technova_user_token}"}
+    )
+    assert read_resp.status_code == 404
+
+    append_resp = client.post(
+        "/api/v1/chat/message",
+        headers={"Authorization": f"Bearer {technova_user_token}"},
+        json={"conversation_id": conv_id, "message": "Attempted thread hijack"}
+    )
+    assert append_resp.status_code == 404
+
+    delete_resp = client.delete(
+        f"/api/v1/chat/conversations/{conv_id}",
+        headers={"Authorization": f"Bearer {technova_user_token}"}
+    )
+    assert delete_resp.status_code == 404

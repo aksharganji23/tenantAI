@@ -1,4 +1,5 @@
 import os
+import json
 from typing import List, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -51,8 +52,7 @@ class Settings(BaseSettings):
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:8000",
-        "http://127.0.0.1:8000",
-        "*"
+        "http://127.0.0.1:8000"
     ]
 
     model_config = SettingsConfigDict(
@@ -64,10 +64,23 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
+raw_cors_origins = os.getenv("CORS_ORIGINS")
+if raw_cors_origins:
+    try:
+        parsed_origins = json.loads(raw_cors_origins)
+        settings.CORS_ORIGINS = parsed_origins if isinstance(parsed_origins, list) else [raw_cors_origins]
+    except json.JSONDecodeError:
+        settings.CORS_ORIGINS = [origin.strip() for origin in raw_cors_origins.split(",") if origin.strip()]
+
+if "*" in settings.CORS_ORIGINS:
+    raise RuntimeError("Wildcard CORS origins are not allowed when credentials are enabled")
+
 if not settings.SECRET_KEY:
     if settings.ENVIRONMENT.lower() == "production":
         raise RuntimeError("SECRET_KEY must be configured in production")
     settings.SECRET_KEY = "local-development-only-change-me"
+elif settings.ENVIRONMENT.lower() == "production" and len(settings.SECRET_KEY) < 32:
+    raise RuntimeError("SECRET_KEY must contain at least 32 characters in production")
 
 # Ensure storage directory exists
 os.makedirs(settings.STORAGE_DIR, exist_ok=True)

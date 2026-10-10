@@ -7,7 +7,7 @@ services:
     restart: always
     environment:
       POSTGRES_USER: tenantai_user
-      POSTGRES_PASSWORD: tenantai_secure_pass
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your environment}
       POSTGRES_DB: tenantai_db
     ports:
       - "5432:5432"
@@ -27,8 +27,10 @@ services:
     restart: always
     environment:
       PORT: 8001
-      DATABASE_URL: postgresql://tenantai_user:tenantai_secure_pass@db:5432/tenantai_db
-      SECRET_KEY: tenantai-super-secret-jwt-encryption-key-hackathon-2025
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in your environment}
+      SECRET_KEY: ${SECRET_KEY:?Set a high-entropy SECRET_KEY in your environment}
+      ENVIRONMENT: production
+      CORS_ORIGINS: ${CORS_ORIGINS:?Set CORS_ORIGINS in your environment}
       STORAGE_DIR: /app/storage
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
     ports:
@@ -46,7 +48,7 @@ services:
     container_name: tenantai-frontend
     restart: always
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8001
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?Set NEXT_PUBLIC_API_URL in your environment}
     ports:
       - "3000:3000"
     depends_on:

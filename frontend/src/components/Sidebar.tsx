@@ -44,6 +44,7 @@ export default function Sidebar() {
       href: '/logs',
       icon: Activity,
       badge: null,
+      adminOnly: true,
     },
     {
       name: 'Workspace Settings',
@@ -56,7 +57,7 @@ export default function Sidebar() {
       href: '/admin',
       icon: Shield,
       badge: user?.role === 'superadmin' ? 'Root' : 'Admin',
-      superOnly: false,
+      superOnly: true,
     },
     {
       name: 'Jury Demo Suite',
@@ -65,7 +66,10 @@ export default function Sidebar() {
       badge: 'Live',
       highlight: true,
     },
-  ];
+  ].filter((item) =>
+    (!item.adminOnly || user?.role === 'tenant_admin' || user?.role === 'superadmin') &&
+    (!item.superOnly || user?.role === 'superadmin')
+  );
 
   return (
     <aside className="w-64 border-r border-slate-200 bg-white flex flex-col shrink-0 min-h-[calc(100vh-4rem)]">
