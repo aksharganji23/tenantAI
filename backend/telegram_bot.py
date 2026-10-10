@@ -1,4 +1,4 @@
-"""Telegram interface for the shared SaaSum AI backend and database.
+﻿"""Telegram interface for the shared SaaSum AI backend and database.
 
 Run from backend/ with:
     python telegram_bot.py
@@ -10,17 +10,28 @@ session bound to the Telegram chat ID and expires it after inactivity.
 import asyncio
 import json
 import logging
+import os
+import re
+import time
 from datetime import datetime, timedelta
 from typing import Optional
 
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    ContextTypes,
+    MessageHandler,
+    filters,
+)
 
 from app.api.deps import verify_password
 from app.config import settings
 from app.database import Base, SessionLocal, engine
-from app.models import Conversation, Message, TelegramSession, User
+from app.models import Conversation, Document, DocumentChunk, Message, TelegramSession, Tenant, UsageLog, User
 from app.services.audit_logger import log_event
+from app.services.document_parser import chunk_pages_text, extract_text_from_pdf, extract_text_from_txt
+from app.services.embeddings import get_embedding
 from app.services.rag_engine import run_rag_query
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -52,23 +63,68 @@ def expired_message() -> str:
     return "Your session expired due to inactivity. Please log in again to continue."
 
 
+def command_list() -> str:
+    return (
+        "Available commands:\n"
+        "/status - account, company, and session status\n"
+        "/documents - list your company's documents\n"
+        "/upload - upload a PDF, TXT, or MD file, then send it as a Telegram document\n"
+        "/conversations - list your saved chat conversations\n"
+        "/audits - show recent audit and telemetry events\n"
+        "/settings - show company settings\n"
+        "/setcompany <name> - rename the company (tenant admins only)\n"
+        "/setdomain <domain> - change the company domain (tenant admins only)\n"
+        "/help - show this command list\n"
+        "/logout - revoke this Telegram session\n\n"
+        "You can also send any document question as plain text."
+    )
+
+
+def authenticated_context(chat_id: int):
+    """Return an active session, user, and database session for one Telegram chat."""
+    db = SessionLocal()
+    session = get_session(chat_id, db)
+    if not session:
+        db.close()
+        return None, None, db
+    user = (
+        db.query(User)
+        .filter(
+            User.id == session.user_id,
+            User.tenant_id == session.tenant_id,
+            User.is_active.is_(True),
+            User.is_verified.is_(True),
+        )
+        .first()
+    )
+    if not user:
+        db.delete(session)
+        db.commit()
+        db.close()
+        return None, None, None
+    return session, user, db
+
+
+async def require_login(update: Update):
+    session, user, db = authenticated_context(update.effective_chat.id)
+    if not session or not user:
+        await update.message.reply_text(expired_message())
+        return None, None, db
+    return session, user, db
+
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
-        "Welcome to SaaSum AI.\n\n"
+        "Welcome to tenantAI.\n\n"
         "Use /login to authenticate with your verified company account.\n"
-        "Then send a question about your company's uploaded documents.\n\n"
-        "Commands: /login, /status, /help, /logout"
+        "After login, manage documents, telemetry, company settings, and chat "
+        "from Telegram.\n\n"
+        + command_list()
     )
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text(
-        "/login - authenticate your verified application account\n"
-        "/status - show session status and company\n"
-        "/logout - revoke this Telegram session\n"
-        "/help - show this help\n\n"
-        "After login, send a plain-text question about authorized company documents."
-    )
+    await update.message.reply_text(command_list())
 
 
 async def login(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -132,20 +188,11 @@ async def handle_login_or_question(update: Update, context: ContextTypes.DEFAULT
             db.close()
         return
 
-    db = SessionLocal()
+    session, user, db = authenticated_context(chat_id)
+    if not session or not user:
+        await update.message.reply_text(expired_message())
+        return
     try:
-        session = get_session(chat_id, db)
-        if not session:
-            await update.message.reply_text(expired_message())
-            return
-
-        user = db.query(User).filter(User.id == session.user_id, User.tenant_id == session.tenant_id).first()
-        if not user or not user.is_active or not user.is_verified:
-            db.delete(session)
-            db.commit()
-            await update.message.reply_text("Your account is no longer authorized. Please log in again.")
-            return
-
         conv = Conversation(
             tenant_id=session.tenant_id,
             user_id=user.id,
@@ -178,16 +225,263 @@ async def handle_login_or_question(update: Update, context: ContextTypes.DEFAULT
 
 
 async def status(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    db = SessionLocal()
+    session, user, db = await require_login(update)
+    if not session or not user:
+        if db:
+            db.close()
+        return
     try:
-        session = get_session(update.effective_chat.id, db)
-        if not session:
-            await update.message.reply_text("Not authenticated. Use /login to connect your company account.")
-            return
-        user = db.query(User).filter(User.id == session.user_id, User.tenant_id == session.tenant_id).first()
         tenant_name = user.tenant.name if user and user.tenant else "your company"
         remaining = max(0, int((session.expires_at - now()).total_seconds()))
-        await update.message.reply_text(f"Authenticated as {user.email} for {tenant_name}.\nSession remaining: {remaining} seconds.")
+        await update.message.reply_text(
+            f"Authenticated as {user.email}\n"
+            f"Company: {tenant_name}\n"
+            f"Role: {user.role}\n"
+            f"Session remaining: {remaining} seconds"
+        )
+    finally:
+        db.close()
+
+
+async def documents(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    session, user, db = await require_login(update)
+    if not session or not user:
+        if db:
+            db.close()
+        return
+    try:
+        items = (
+            db.query(Document)
+            .filter(Document.tenant_id == session.tenant_id)
+            .order_by(Document.created_at.desc())
+            .limit(20)
+            .all()
+        )
+        if not items:
+            await update.message.reply_text("No documents are uploaded for this company yet.")
+            return
+        lines = ["Company documents:"]
+        for item in items:
+            lines.append(f"- {item.title} [{item.status}, {item.chunk_count} chunks]")
+        await update.message.reply_text("\n".join(lines))
+    finally:
+        db.close()
+
+
+async def upload_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    session, user, db = await require_login(update)
+    if db:
+        db.close()
+    if not session or not user:
+        return
+    await update.message.reply_text(
+        "Send a PDF, TXT, or MD file as a Telegram document now. "
+        "The file will be processed inside your company workspace."
+    )
+
+
+async def handle_document_upload(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not update.message or not update.message.document:
+        return
+    session, user, db = await require_login(update)
+    if not session or not user:
+        if db:
+            db.close()
+        return
+    try:
+        telegram_document = update.message.document
+        original_name = os.path.basename(telegram_document.file_name or "telegram_upload.txt")
+        extension = os.path.splitext(original_name)[1].lower().lstrip(".")
+        if extension not in settings.ALLOWED_EXTENSIONS:
+            await update.message.reply_text(
+                f"Unsupported file type .{extension}. Allowed: {', '.join(settings.ALLOWED_EXTENSIONS)}"
+            )
+            return
+        tenant = db.query(Tenant).filter(Tenant.id == session.tenant_id).first()
+        document_count = db.query(Document).filter(Document.tenant_id == session.tenant_id).count()
+        if tenant and document_count >= tenant.quota_docs:
+            await update.message.reply_text("Your company document quota has been reached.")
+            return
+
+        storage_dir = os.path.join(settings.STORAGE_DIR, f"tenant_{session.tenant_id}")
+        os.makedirs(storage_dir, exist_ok=True)
+        clean_name = re.sub(r"[^A-Za-z0-9_.-]", "_", original_name)
+        saved_path = os.path.join(storage_dir, f"{int(time.time())}_{clean_name}")
+        telegram_file = await telegram_document.get_file()
+        await telegram_file.download_to_drive(saved_path)
+        file_size = os.path.getsize(saved_path)
+        if file_size > settings.MAX_UPLOAD_SIZE_BYTES:
+            os.remove(saved_path)
+            await update.message.reply_text("The file exceeds the maximum upload size.")
+            return
+
+        record = Document(
+            tenant_id=session.tenant_id,
+            filename=original_name,
+            file_path=saved_path,
+            file_type=extension,
+            file_size=file_size,
+            title=os.path.splitext(original_name)[0].replace("_", " "),
+            status="PROCESSING",
+            chunk_count=0,
+        )
+        db.add(record)
+        db.commit()
+        db.refresh(record)
+        try:
+            pages = extract_text_from_pdf(saved_path) if extension == "pdf" else extract_text_from_txt(saved_path)
+            chunks = chunk_pages_text(pages)
+            if not chunks:
+                raise ValueError("No extractable text found in the file.")
+            for chunk in chunks:
+                db.add(
+                    DocumentChunk(
+                        document_id=record.id,
+                        tenant_id=session.tenant_id,
+                        chunk_index=chunk["chunk_index"],
+                        content=chunk["content"],
+                        page_number=chunk["page_number"],
+                        token_count=chunk["token_count"],
+                        embedding=json.dumps(get_embedding(chunk["content"])),
+                    )
+                )
+            record.status = "READY"
+            record.chunk_count = len(chunks)
+            db.commit()
+            log_event(
+                db,
+                session.tenant_id,
+                user.id,
+                user.email,
+                "telegram_doc_upload",
+                "SUCCESS",
+                details=f"Uploaded '{original_name}' ({len(chunks)} chunks)",
+            )
+            await update.message.reply_text(
+                f"Uploaded successfully: {record.title}\n"
+                f"Status: READY\nChunks: {record.chunk_count}"
+            )
+        except Exception as error:
+            record.status = "FAILED"
+            record.error_message = str(error)
+            db.commit()
+            log_event(
+                db,
+                session.tenant_id,
+                user.id,
+                user.email,
+                "telegram_doc_upload",
+                "ERROR",
+                details=f"Failed processing '{original_name}': {error}",
+            )
+            await update.message.reply_text(f"Document processing failed: {error}")
+    finally:
+        db.close()
+
+
+async def conversations(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    session, user, db = await require_login(update)
+    if not session or not user:
+        if db:
+            db.close()
+        return
+    try:
+        items = (
+            db.query(Conversation)
+            .filter(Conversation.tenant_id == session.tenant_id, Conversation.user_id == user.id)
+            .order_by(Conversation.updated_at.desc())
+            .limit(20)
+            .all()
+        )
+        if not items:
+            await update.message.reply_text("No saved conversations yet.")
+            return
+        await update.message.reply_text(
+            "Your saved conversations:\n" + "\n".join(
+                f"- #{item.id}: {item.title}" for item in items
+            )
+        )
+    finally:
+        db.close()
+
+
+async def audits(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    session, user, db = await require_login(update)
+    if not session or not user:
+        if db:
+            db.close()
+        return
+    try:
+        items = (
+            db.query(UsageLog)
+            .filter(UsageLog.tenant_id == session.tenant_id)
+            .order_by(UsageLog.created_at.desc())
+            .limit(10)
+            .all()
+        )
+        if not items:
+            await update.message.reply_text("No audit or telemetry events found.")
+            return
+        lines = ["Recent audit & telemetry:"]
+        for item in items:
+            details = (item.details or "").replace("\n", " ")[:100]
+            lines.append(f"- {item.action} | {item.outcome} | {details}")
+        await update.message.reply_text("\n".join(lines))
+    finally:
+        db.close()
+
+
+async def settings_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    session, user, db = await require_login(update)
+    if not session or not user:
+        if db:
+            db.close()
+        return
+    try:
+        tenant = db.query(Tenant).filter(Tenant.id == session.tenant_id).first()
+        await update.message.reply_text(
+            f"Company settings\n"
+            f"Name: {tenant.name}\n"
+            f"Domain: {tenant.domain or 'not set'}\n"
+            f"Plan: {tenant.plan}\n"
+            f"Document quota: {tenant.quota_docs}\n"
+            f"Query quota: {tenant.quota_queries}\n\n"
+            "Tenant admins can use /setcompany <name> and /setdomain <domain>."
+        )
+    finally:
+        db.close()
+
+
+async def set_company(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update_tenant_field(update, context, "name", "company name")
+
+
+async def set_domain(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update_tenant_field(update, context, "domain", "domain")
+
+
+async def update_tenant_field(update: Update, context: ContextTypes.DEFAULT_TYPE, field: str, label: str) -> None:
+    session, user, db = await require_login(update)
+    if not session or not user:
+        if db:
+            db.close()
+        return
+    try:
+        if user.role not in {"tenant_admin", "superadmin"}:
+            await update.message.reply_text("Only a tenant admin can modify company settings.")
+            return
+        value = " ".join(context.args).strip()
+        if not value:
+            await update.message.reply_text(f"Usage: /{update.effective_message.text.split()[0][1:]} <{label}>")
+            return
+        if field == "name" and len(value) > 255:
+            await update.message.reply_text("The company name is too long.")
+            return
+        tenant = db.query(Tenant).filter(Tenant.id == session.tenant_id).first()
+        setattr(tenant, field, value)
+        db.commit()
+        log_event(db, session.tenant_id, user.id, user.email, "tenant_settings_update", "SUCCESS", details=f"Updated {field} via Telegram")
+        await update.message.reply_text(f"Company {label} updated to: {value}")
     finally:
         db.close()
 
@@ -216,7 +510,15 @@ def main() -> None:
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("login", login))
     application.add_handler(CommandHandler("status", status))
+    application.add_handler(CommandHandler("documents", documents))
+    application.add_handler(CommandHandler("upload", upload_prompt))
+    application.add_handler(CommandHandler("conversations", conversations))
+    application.add_handler(CommandHandler(["audits", "telemetry"], audits))
+    application.add_handler(CommandHandler("settings", settings_command))
+    application.add_handler(CommandHandler("setcompany", set_company))
+    application.add_handler(CommandHandler("setdomain", set_domain))
     application.add_handler(CommandHandler("logout", logout))
+    application.add_handler(MessageHandler(filters.Document.ALL, handle_document_upload))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_login_or_question))
     logger.info("SaaSum AI Telegram bot started with %s-second inactivity sessions", settings.TELEGRAM_SESSION_TIMEOUT_SECONDS)
     # Python 3.14 no longer creates a default event loop for the main thread.
@@ -226,5 +528,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
 

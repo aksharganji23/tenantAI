@@ -300,11 +300,18 @@ python telegram_bot.py
 - `/start` - welcome and usage instructions
 - `/login` - authenticate using a verified SaaSum AI account
 - `/status` - show company and remaining session time
+- `/documents` - list documents in the authenticated company workspace
+- `/upload` - show the document-upload prompt; then send a PDF, TXT, or MD file
+- `/conversations` - list the authenticated user's saved conversations
+- `/audits` or `/telemetry` - show recent tenant-scoped audit and telemetry events
+- `/settings` - show company name, domain, plan, and quotas
+- `/setcompany <name>` - update the company name (tenant admins only)
+- `/setdomain <domain>` - update the company domain (tenant admins only)
 - `/help` - show commands
 - `/logout` - immediately revoke the Telegram session
 - After login, send a plain-text question about uploaded company documents
 
-Telegram sessions are bound to the Telegram chat ID, scoped to the authenticated user's tenant, audited, and invalidated after 120 seconds without activity. The bot never stores the user's password.
+Telegram sessions are bound to the Telegram chat ID, scoped to the authenticated user's tenant, audited, and invalidated after 120 seconds without activity. The bot never stores the user's password. Document uploads use the same parser, chunking, embeddings, quotas, and tenant scope as the web application. Settings changes are limited to tenant admins.
 
 ### BotFather
 
@@ -324,4 +331,3 @@ The `backend/sample_documents` folder contains safe upload-ready TXT files:
 - `saasum_demo_questions.txt`
 
 Upload documents one at a time from the web application's Documents page. Use questions from `saasum_demo_questions.txt` to demonstrate grounded answers and out-of-domain refusal.
-
