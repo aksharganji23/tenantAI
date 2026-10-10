@@ -49,12 +49,15 @@ def get_session(chat_id: int, db) -> Optional[TelegramSession]:
     session = db.query(TelegramSession).filter(TelegramSession.telegram_chat_id == chat_id).first()
     if not session:
         return None
-    if session.expires_at <= now():
+    current_time = now()
+    inactivity_limit = timedelta(seconds=settings.TELEGRAM_SESSION_TIMEOUT_SECONDS)
+    if current_time - session.last_activity_at >= inactivity_limit:
         db.delete(session)
         db.commit()
         return None
-    session.last_activity_at = now()
-    session.expires_at = now() + timedelta(seconds=settings.TELEGRAM_SESSION_TIMEOUT_SECONDS)
+    # Sliding expiration: every authenticated update gets a fresh inactivity window.
+    session.last_activity_at = current_time
+    session.expires_at = current_time + inactivity_limit
     db.commit()
     return session
 
