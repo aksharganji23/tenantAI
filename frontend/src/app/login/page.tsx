@@ -43,7 +43,16 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="surface-card space-y-5 p-7">
-          {error && <p className="rounded-xl border border-rose-400/30 bg-rose-400/10 p-3 text-sm text-rose-300">{error}</p>}
+          {error && (
+            <div className="rounded-xl border border-rose-400/30 bg-rose-400/10 p-3 text-sm text-rose-300">
+              <p>{error}</p>
+              {error.toLowerCase().includes('verify your email') && (
+                <Link href={`/verify-email?email=${encodeURIComponent(email)}`} className="mt-2 inline-block font-semibold text-rose-200 underline">
+                  Verify this email
+                </Link>
+              )}
+            </div>
+          )}
           <label className="block text-sm font-medium text-slate-300">
             Work email
             <input className="field mt-2" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />

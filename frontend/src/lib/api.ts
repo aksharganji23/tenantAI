@@ -59,7 +59,22 @@ async function request<T>(
     let errorDetail = `Request failed with status ${response.status}`;
     try {
       const errorJson = await response.json();
-      errorDetail = errorJson.detail || JSON.stringify(errorJson);
+      const detail = errorJson?.detail;
+      if (typeof detail === 'string') {
+        errorDetail = detail;
+      } else if (Array.isArray(detail)) {
+        errorDetail = detail
+          .map((item) => {
+            if (typeof item === 'string') return item;
+            if (item && typeof item.msg === 'string') return item.msg;
+            return JSON.stringify(item);
+          })
+          .join('; ');
+      } else if (detail && typeof detail === 'object') {
+        errorDetail = JSON.stringify(detail);
+      } else {
+        errorDetail = JSON.stringify(errorJson);
+      }
     } catch {
       errorDetail = await response.text();
     }
