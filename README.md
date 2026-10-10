@@ -149,7 +149,25 @@ cd d:\AI_bot\backend
 
 ### 4. Email verification configuration
 
-Copy `.env.example` to `.env`, set a long random `SECRET_KEY`, and configure `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, and `SMTP_FROM_EMAIL` for real delivery. The local fallback is intended only for development.
+The backend reads `.env` from the `backend` directory. For Gmail delivery:
+
+1. Open your Google Account → **Security**.
+2. Enable **2-Step Verification**.
+3. Open **App passwords**, create one for this project, and copy the generated 16-character password.
+4. Copy `backend/.env.example` to `backend/.env`.
+5. Set `SMTP_USERNAME`, `SMTP_FROM_EMAIL` to your Gmail address and `SMTP_PASSWORD` to the Google App Password. Do not use your normal Gmail password.
+6. Restart the backend before registering again.
+
+PowerShell:
+
+```powershell
+cd backend
+Copy-Item .env.example .env
+notepad .env
+python run.py
+```
+
+If `SMTP_HOST` is blank, the application does not send email; it prints a development OTP in the backend terminal instead. Check Gmail Spam/Promotions if SMTP is configured. A failed SMTP delivery now appears as an explicit backend error instead of silently looking successful.
 
 ---
 

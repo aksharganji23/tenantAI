@@ -12,7 +12,9 @@ def send_verification_code(recipient: str, code: str) -> None:
     if not settings.SMTP_HOST:
         if settings.ENVIRONMENT.lower() == "production":
             raise RuntimeError("SMTP_HOST must be configured in production")
-        logger.info("Email verification OTP for %s: %s", recipient, code)
+        message = f"[Email] Development OTP for {recipient}: {code}"
+        logger.warning(message)
+        print(message, flush=True)
         return
 
     message = EmailMessage()
@@ -23,9 +25,13 @@ def send_verification_code(recipient: str, code: str) -> None:
         f"Your verification code is {code}. It expires in {settings.OTP_EXPIRY_MINUTES} minutes."
     )
 
-    with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=15) as smtp:
-        if settings.SMTP_USE_TLS:
-            smtp.starttls()
-        if settings.SMTP_USERNAME:
-            smtp.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD or "")
-        smtp.send_message(message)
+    try:
+        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=15) as smtp:
+            if settings.SMTP_USE_TLS:
+                smtp.starttls()
+            if settings.SMTP_USERNAME:
+                smtp.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD or "")
+            smtp.send_message(message)
+    except smtplib.SMTPException:
+        logger.exception("SMTP delivery failed for %s", recipient)
+        raise
