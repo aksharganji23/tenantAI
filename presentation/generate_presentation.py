@@ -147,6 +147,56 @@ add_card(slide, 4.8, 1.75, 3.8, 3.85, "Differentiation", "Security is visible an
 add_card(slide, 8.85, 1.75, 3.8, 3.85, "Business value", "Reusable company knowledge, faster support decisions, lower information risk, and a path to per-tenant SaaS pricing.")
 add_text(slide, "Honest status: deployment verification, object storage, OCR, and formal migrations remain production follow-up work.", 0.9, 6.15, 11.5, 0.4, 13, MUTED, False, PP_ALIGN.CENTER)
 
+slide = base_slide(prs, "Data model and isolation boundary", "Tenant identity is carried through every relationship that contains private knowledge.")
+add_card(slide, 0.55, 1.7, 2.35, 3.95, "Tenant", "Company workspace\nSlug and quota\nAdmin membership\nOwns all private records")
+add_card(slide, 3.05, 1.7, 2.35, 3.95, "User", "Email and password hash\nVerified status\nRole: admin/user\nBelongs to one tenant")
+add_card(slide, 5.55, 1.7, 2.35, 3.95, "Document", "Tenant-owned file\nPENDING → READY\nParser metadata\nSafe deletion boundary")
+add_card(slide, 8.05, 1.7, 2.35, 3.95, "Chunks", "Text segments\nEmbedding vectors\nPage/source metadata\nTenant-scoped retrieval")
+add_card(slide, 10.55, 1.7, 2.35, 3.95, "Conversation", "Tenant-owned thread\nMessages and citations\nAudit-linked question\nNo cross-tenant joins")
+add_text(slide, "Security invariant: a valid resource ID is not sufficient; the authenticated tenant must also own the resource.", 0.85, 6.15, 11.6, 0.4, 15, ACCENT, False, PP_ALIGN.CENTER)
+
+slide = base_slide(prs, "Request security flow", "A typical chat request is authorized before retrieval or generation.")
+steps = ["JWT\nverified", "User + role\nloaded", "Tenant ID\nresolved", "Documents\nfiltered", "Chunks\nretrieved", "Answer +\ncitations", "Audit\nwritten"]
+for i, step in enumerate(steps):
+    x = 0.45 + i * 1.82
+    add_card(slide, x, 2.1, 1.5, 1.65, str(i + 1), step)
+add_text(slide, "Client input: question only. Tenant identity, ownership, and authorization are server decisions.", 1.0, 4.65, 11.2, 0.45, 17, TEXT, False, PP_ALIGN.CENTER)
+add_text(slide, "Failure paths are explicit: 401 unauthenticated, 403 insufficient role, 404 hidden cross-tenant resource, or a grounded refusal.", 0.9, 5.55, 11.5, 0.5, 15, ACCENT, False, PP_ALIGN.CENTER)
+
+slide = base_slide(prs, "Telegram assistant", "The bot uses the same tenant-scoped backend concepts instead of creating a second data silo.")
+add_card(slide, 0.75, 1.75, 3.8, 3.85, "Authentication", "/start and login flow\nTenant-aware Telegram session\n120-second sliding inactivity timeout\nSession state persisted in the database")
+add_card(slide, 4.8, 1.75, 3.8, 3.85, "Commands", "/chat\n/documents\n/upload\n/conversations\n/audits\n/telemetry")
+add_card(slide, 8.85, 1.75, 3.8, 3.85, "Administration", "/settings\n/setcompany\n/setdomain\nAdmin-only settings changes\nFriendly upload success/failure responses")
+add_text(slide, "Operational rule: every authenticated command refreshes activity; only inactivity expires the session.", 0.95, 6.15, 11.4, 0.35, 14, ACCENT, False, PP_ALIGN.CENTER)
+
+slide = base_slide(prs, "Quality and verification", "Evidence used to reduce regression risk before the jury demo.")
+add_card(slide, 0.75, 1.75, 3.8, 3.8, "Backend tests", "Authentication and verification\nTenant authorization\nAdmin access\nDocument lifecycle\nRAG citations\nTelegram session expiry")
+add_card(slide, 4.8, 1.75, 3.8, 3.8, "Frontend checks", "Production build\n16 generated routes\nAccessible labels and focus states\nResponsive landing/auth flows\nReduced-motion support")
+add_card(slide, 8.85, 1.75, 3.8, 3.8, "Operational checks", "Health endpoint\nStrict CORS defaults\nProduction reload disabled\nGeneric user-facing failures\nDiff and presentation validation")
+add_text(slide, "The demo separates verified behavior from roadmap items so the jury can evaluate the working MVP honestly.", 0.95, 6.15, 11.4, 0.35, 14, ACCENT, False, PP_ALIGN.CENTER)
+
+slide = base_slide(prs, "Render deployment runbook", "A repeatable path from the repository to a public demo environment.")
+add_text(slide, "1  Create Blueprint", 0.9, 1.7, 5.3, 0.45, 19, TEXT, True)
+add_text(slide, "Select the repository and apply render.yaml.", 0.9, 2.15, 5.5, 0.35, 14, MUTED)
+add_text(slide, "2  Configure secrets", 0.9, 2.85, 5.3, 0.45, 19, TEXT, True)
+add_text(slide, "DATABASE_URL, SECRET_KEY, CORS_ORIGINS, SMTP, and Telegram token.", 0.9, 3.3, 5.8, 0.55, 14, MUTED)
+add_text(slide, "3  Seed and verify", 0.9, 4.0, 5.3, 0.45, 19, TEXT, True)
+add_text(slide, "Run the explicit jury seed command, then test health, login, upload, chat, and logs.", 0.9, 4.45, 6.0, 0.7, 14, MUTED)
+add_card(slide, 7.3, 1.7, 5.2, 3.7, "Production checklist", "Frontend URL added to backend CORS\nManaged PostgreSQL connected\nPersistent file storage selected\nSMTP delivery verified\nSecrets stored in Render, not Git\nWorker health and logs monitored")
+add_text(slide, "Deployment is an operator-controlled step; no paid or irreversible action is performed by the application.", 0.9, 6.2, 11.5, 0.35, 14, ACCENT, False, PP_ALIGN.CENTER)
+
+slide = base_slide(prs, "Risks and mitigations", "The design acknowledges what can fail and how the platform responds.")
+add_card(slide, 0.75, 1.75, 3.8, 3.85, "Hallucination risk", "Mitigation: tenant-scoped retrieval, grounded prompts, citations, and explicit out-of-domain refusal.")
+add_card(slide, 4.8, 1.75, 3.8, 3.85, "Data leakage risk", "Mitigation: server-side tenant filters, hidden 404 responses, role guards, audit events, and IDOR simulation.")
+add_card(slide, 8.85, 1.75, 3.8, 3.85, "Production scale risk", "Mitigation roadmap: Alembic migrations, object storage, async workers, OCR, rate limits, and managed observability.")
+add_text(slide, "Security is treated as a product feature and an observable operating process, not a UI promise.", 0.95, 6.15, 11.4, 0.35, 14, ACCENT, False, PP_ALIGN.CENTER)
+
+slide = base_slide(prs, "Jury questions: concise answers", "Use this slide as a speaker prompt during evaluation.")
+add_card(slide, 0.65, 1.7, 2.85, 4.0, "Why multi-tenant?", "A company assistant must be useful without mixing confidential workspaces. Tenant scope is enforced in backend queries.")
+add_card(slide, 3.65, 1.7, 2.85, 4.0, "Why RAG?", "Company policies change. Retrieval grounds answers in the latest approved documents instead of model memory.")
+add_card(slide, 6.65, 1.7, 2.85, 4.0, "How do you prove security?", "Run the IDOR simulator, observe 404 and zero leaked bytes, then inspect the audit event.")
+add_card(slide, 9.65, 1.7, 2.85, 4.0, "What is next?", "Production migrations, storage, OCR, async processing, and verified Render rollout.")
+
 slide = base_slide(prs, "Conclusion and roadmap", "Secure foundations first; integrate only what can be verified.")
 add_card(slide, 0.75, 1.8, 3.8, 3.6, "Now", "Tenant-scoped FastAPI APIs, grounded RAG, OTP registration, dark-first auth UI, audit telemetry.")
 add_card(slide, 4.8, 1.8, 3.8, 3.6, "Next", "Complete Telegram account linking and 120-second session enforcement on a shared bot service.")
