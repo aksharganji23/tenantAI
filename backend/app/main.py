@@ -1,11 +1,11 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from sqlalchemy import text
+from sqlalchemy import inspect, text
 
 from app.config import settings
 from app.database import engine, Base, get_db
-from app.seed.seed_data import run_seed
+from app.models import EmailVerificationCode  # noqa: F401
 
 # Import routers
 from app.api.auth import router as auth_router
@@ -18,6 +18,19 @@ from app.api.demo import router as demo_router
 
 # Initialize tables
 Base.metadata.create_all(bind=engine)
+
+
+def ensure_compatibility_schema():
+    """Add the verification column to databases created before OTP support."""
+    columns = {column["name"] for column in inspect(engine).get_columns("users")}
+    if "is_verified" not in columns:
+        with engine.begin() as connection:
+            connection.execute(
+                text("ALTER TABLE users ADD COLUMN is_verified BOOLEAN NOT NULL DEFAULT TRUE")
+            )
+
+
+ensure_compatibility_schema()
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -44,15 +57,6 @@ app.include_router(chat_router, prefix=settings.API_V1_PREFIX)
 app.include_router(logs_router, prefix=settings.API_V1_PREFIX)
 app.include_router(admin_router, prefix=settings.API_V1_PREFIX)
 app.include_router(demo_router, prefix=settings.API_V1_PREFIX)
-
-
-@app.on_event("startup")
-def on_startup():
-    """Ensure database schema is created and demo data is seeded upon server startup."""
-    try:
-        run_seed()
-    except Exception as e:
-        print(f"[Startup Warning] Seed execution encountered: {e}")
 
 
 @app.get("/health", tags=["Health"])

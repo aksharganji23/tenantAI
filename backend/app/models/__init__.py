@@ -3,6 +3,7 @@ from app.models.user import User
 from app.models.document import Document, DocumentChunk
 from app.models.conversation import Conversation, Message
 from app.models.usage_log import UsageLog
+from app.models.email_verification import EmailVerificationCode
 
 __all__ = [
     "Tenant",
@@ -11,5 +12,6 @@ __all__ = [
     "DocumentChunk",
     "Conversation",
     "Message",
-    "UsageLog"
+    "UsageLog",
+    "EmailVerificationCode",
 ]

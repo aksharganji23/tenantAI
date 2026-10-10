@@ -1,4 +1,4 @@
-# TenantAI — Secure Multi-Tenant AI Chatbot Platform
+# SaaSsum AI — Secure Multi-Tenant AI Chatbot Platform
 
 > **TriCity AI Hackathon MVP** | Track: SaaSsum AI (IT & AI)  
 > Built by: Autonomous Senior Full-Stack & AI Engineering Team  
@@ -45,9 +45,15 @@ graph TD
 
 ---
 
-## 🏢 Fictional Demo Tenants & Credentials
+## 🔐 Current account lifecycle
 
-The database is pre-seeded with realistic enterprise tenants, documents, and credentials:
+New installations start without demo tenants or seeded credentials. A company administrator registers at `/register`, receives a six-digit OTP, verifies the email within five minutes, and can then sign in. OTP values are stored only as SHA-256 hashes. In development, leaving `SMTP_HOST` empty logs the code through the backend logger; configure SMTP before production use.
+
+The explicit cleanup utility is `backend/scripts/cleanup_demo_data.py`. It performs a dry run by default and creates a timestamped SQLite backup before deleting only the known repository demo slugs (`technova`, `greenleaf`) when invoked with `--apply`. It is never run at application startup.
+
+## 🏢 Legacy demo tenants
+
+The repository still contains legacy seed fixtures used by the existing tenant-isolation test suite. They are not loaded by the application anymore and are not exposed by the frontend.
 
 | Tenant / Company | Persona Role | Email | Password | Pre-loaded Knowledge Base |
 | :--- | :--- | :--- | :--- | :--- |
@@ -55,7 +61,7 @@ The database is pre-seeded with realistic enterprise tenants, documents, and cre
 | **TechNova Solutions** (Company A) | Tenant Engineer | `user@technova.com` | `DemoPass123!` | *Hardware specs & battery guidelines* |
 | **GreenLeaf Retail** (Company B) | Tenant Administrator | `admin@greenleaf.com` | `DemoPass123!` | *GreenLeaf Customer Refund & Return Policy* |
 | **GreenLeaf Retail** (Company B) | Support Specialist | `user@greenleaf.com` | `DemoPass123!` | *Retail returns & restocking fees* |
-| **Platform Root** | Global SuperAdmin | `admin@tenantai.com` | `SuperAdmin123!` | *System Overview & Global Telemetry* |
+| Platform Root | Global SuperAdmin | test fixture only | test fixture only | test fixture only |
 
 ---
 
@@ -139,7 +145,11 @@ npm run dev
 cd d:\AI_bot\backend
 .\venv\Scripts\pytest -v
 ```
-*All 19 tests pass: auth tests, admin tests, document upload tests, RAG citations, and cross-tenant isolation tests.*
+*The current suite covers authentication, admin access, document upload, RAG citations, and cross-tenant isolation. Run it from `backend/` so the `app` package is on `PYTHONPATH`.*
+
+### 4. Email verification configuration
+
+Copy `.env.example` to `.env`, set a long random `SECRET_KEY`, and configure `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, and `SMTP_FROM_EMAIL` for real delivery. The local fallback is intended only for development.
 
 ---
 
@@ -161,10 +171,11 @@ Services:
 
 | Method | Endpoint | Description | Role / Scope |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/api/v1/auth/login` | Authenticate user & issue JWT | Public |
+| `POST` | `/api/v1/auth/register` | Create a pending company administrator and send OTP | Public |
+| `POST` | `/api/v1/auth/verify-email` | Verify the administrator email | Public |
+| `POST` | `/api/v1/auth/resend-verification` | Rate-limited OTP resend | Public |
+| `POST` | `/api/v1/auth/login` | Authenticate verified user & issue JWT | Public |
 | `GET` | `/api/v1/auth/me` | Fetch authenticated profile | Authenticated |
-| `GET` | `/api/v1/demo/accounts` | Return jury demo personas & prompts | Public |
-| `POST` | `/api/v1/demo/reset-seed` | Reset DB to clean demo state | Public |
 | `GET` | `/api/v1/documents` | List caller tenant's documents | Tenant Scoped |
 | `POST` | `/api/v1/documents/upload` | Upload & chunk PDF/TXT document | Tenant Scoped |
 | `GET` | `/api/v1/documents/{id}` | Inspect document & semantic chunks | Tenant Scoped (404 on IDOR) |
@@ -179,16 +190,22 @@ Services:
 
 ---
 
+## 🚀 Deployment notes
+
+The backend is deployable as a FastAPI container and the frontend as a Next.js container. Use managed PostgreSQL for production, persistent object storage for uploaded documents, a managed SMTP provider, and a worker-capable service if document processing becomes asynchronous. Configure `DATABASE_URL`, `SECRET_KEY`, `CORS_ORIGINS`, `STORAGE_DIR` or object storage settings, SMTP variables, `GEMINI_API_KEY`/`OPENAI_API_KEY` as applicable, and `NEXT_PUBLIC_API_URL`. Do not run the cleanup utility against production until the matching tenant list has been reviewed and the generated backup is verified.
+
+Telegram integration is not present in the inherited repository; no bot token, duplicate database, or unverified integration has been fabricated. The existing backend service and tenant-scoped RAG APIs are the integration points for a follow-up bot implementation.
+
 ## 🏆 Hackathon Priority Compliance Matrix
 
 | Priority | Feature Requirement | Implementation Status | Verification Method |
 | :--- | :--- | :--- | :--- |
-| **Priority 1** | Authentication, tenant isolation, document upload, working chat | **Complete (100%)** | Pass automated pytest & verified live |
+| **Priority 1** | Authentication, tenant isolation, document upload, working chat | **Implemented; registration/OTP added** | Backend tests and manual registration flow |
 | **Priority 2** | Real RAG, relevance ranking, citations, grounded responses | **Complete (100%)** | Page numbers & excerpt citations verified |
-| **Priority 3** | Professional UI and responsive dashboard | **Complete (100%)** | Next.js 16, Plus Jakarta Sans, Tailwind v4 |
+| **Priority 3** | Professional UI and responsive dashboard | **Dark-first shell and auth screens implemented** | Run frontend lint/build after `npm install` |
 | **Priority 4** | Usage analytics and admin management | **Complete (100%)** | Live telemetry, tokens, latency, tenant quotas |
 | **Priority 5** | Distinctive feature: IDOR Attack Simulator & Out-of-Domain Refusal | **Complete (100%)** | Interactive Jury Demo Suite at `/demo` |
-| **Priority 6** | Deployment checks, demo preparation, documentation | **Complete (100%)** | Docker Compose, README, `.env.example` |
+| **Priority 6** | Deployment checks, demo preparation, documentation | **Configuration documented; deployment remains operator action** | Docker Compose, README, `.env.example` |
 
 ---
 

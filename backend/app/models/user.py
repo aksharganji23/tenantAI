@@ -14,6 +14,7 @@ class User(Base):
     role = Column(String(50), default="tenant_user", nullable=False)  # "superadmin", "tenant_admin", "tenant_user"
     tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True)
     is_active = Column(Boolean, default=True, nullable=False)
+    is_verified = Column(Boolean, default=False, nullable=False, index=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     last_login_at = Column(DateTime, nullable=True)
 
@@ -21,3 +22,8 @@ class User(Base):
     tenant = relationship("Tenant", back_populates="users")
     conversations = relationship("Conversation", back_populates="user", cascade="all, delete-orphan")
     usage_logs = relationship("UsageLog", back_populates="user", cascade="all, delete-orphan")
+    verification_codes = relationship(
+        "EmailVerificationCode",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )

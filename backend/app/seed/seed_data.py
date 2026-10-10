@@ -67,35 +67,40 @@ def run_seed(db: Session = None):
                 "hashed_password": super_password_hash,
                 "full_name": "Antigravity Global Admin",
                 "role": "superadmin",
-                "tenant_id": technova.id  # superadmin can switch workspaces
+                "tenant_id": technova.id,  # superadmin can switch workspaces
+                "is_verified": True,
             },
             {
                 "email": "admin@technova.com",
                 "hashed_password": demo_password_hash,
                 "full_name": "Marcus Vance (TechNova Admin)",
                 "role": "tenant_admin",
-                "tenant_id": technova.id
+                "tenant_id": technova.id,
+                "is_verified": True,
             },
             {
                 "email": "user@technova.com",
                 "hashed_password": demo_password_hash,
                 "full_name": "Sophia Chen (TechNova Engineer)",
                 "role": "tenant_user",
-                "tenant_id": technova.id
+                "tenant_id": technova.id,
+                "is_verified": True,
             },
             {
                 "email": "admin@greenleaf.com",
                 "hashed_password": demo_password_hash,
                 "full_name": "Elena Rostova (GreenLeaf Ops)",
                 "role": "tenant_admin",
-                "tenant_id": greenleaf.id
+                "tenant_id": greenleaf.id,
+                "is_verified": True,
             },
             {
                 "email": "user@greenleaf.com",
                 "hashed_password": demo_password_hash,
                 "full_name": "Liam Thorne (GreenLeaf Support)",
                 "role": "tenant_user",
-                "tenant_id": greenleaf.id
+                "tenant_id": greenleaf.id,
+                "is_verified": True,
             }
         ]
 
@@ -108,6 +113,7 @@ def run_seed(db: Session = None):
                     full_name=u["full_name"],
                     role=u["role"],
                     tenant_id=u["tenant_id"],
+                    is_verified=u["is_verified"],
                     is_active=True
                 )
                 db.add(new_user)

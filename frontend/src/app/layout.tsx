@@ -13,8 +13,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="h-full bg-slate-50 antialiased">
+    <html lang="en" className="h-full antialiased">
       <head>
+        <script dangerouslySetInnerHTML={{ __html: `document.documentElement.classList.toggle('dark', localStorage.getItem('tenantai_theme') !== 'light')` }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
@@ -22,7 +23,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-full flex flex-col font-sans text-slate-900 bg-slate-50">
+      <body className="min-h-full flex flex-col font-sans">
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

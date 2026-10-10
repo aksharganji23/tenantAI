@@ -7,6 +7,7 @@ export interface User {
   tenant_name?: string;
   tenant_slug?: string;
   is_active: boolean;
+  is_verified: boolean;
 }
 
 export interface Tenant {

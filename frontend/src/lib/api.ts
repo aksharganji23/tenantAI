@@ -73,6 +73,27 @@ async function request<T>(
 
 export const api = {
   auth: {
+    register: async (data: {
+      company_name: string;
+      company_slug: string;
+      full_name: string;
+      email: string;
+      password: string;
+    }): Promise<{ message: string; email: string; expires_in_seconds: number }> => {
+      return request('/auth/register', { method: 'POST', body: JSON.stringify(data) });
+    },
+    verifyEmail: async (email: string, otp: string): Promise<{ message: string }> => {
+      return request('/auth/verify-email', {
+        method: 'POST',
+        body: JSON.stringify({ email, otp }),
+      });
+    },
+    resendVerification: async (email: string): Promise<{ message: string; expires_in_seconds: number }> => {
+      return request('/auth/resend-verification', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      });
+    },
     login: async (email: string, password: string): Promise<{ access_token: string; token_type: string; user: User }> => {
       const res = await request<{ access_token: string; token_type: string; user: User }>(
         '/auth/login',

@@ -8,6 +8,8 @@ backend/venv/
 backend/env/
 backend/.venv/
 *.db
+*.db-*
+backend/storage/
 *.sqlite3
 storage/tenant_*
 
