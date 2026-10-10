@@ -40,3 +40,4 @@ frontend/.env.local
 .DS_Store
 Thumbs.db
 *.log
+presentation/~$*
