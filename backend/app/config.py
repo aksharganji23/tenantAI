@@ -1,5 +1,6 @@
+﻿from typing import List, Optional
 import os
-from typing import List, Optional
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -8,16 +9,10 @@ class Settings(BaseSettings):
     VERSION: str = "1.0.0"
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
     API_V1_PREFIX: str = "/api/v1"
-
-    # Database
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./tenantai.db")
-
-    # Security & JWT
     SECRET_KEY: str = os.getenv("SECRET_KEY", "")
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
-
-    # Email verification
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24
     SMTP_HOST: Optional[str] = os.getenv("SMTP_HOST")
     SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
     SMTP_USERNAME: Optional[str] = os.getenv("SMTP_USERNAME")
@@ -28,46 +23,29 @@ class Settings(BaseSettings):
     OTP_MAX_ATTEMPTS: int = 5
     OTP_RESEND_COOLDOWN_SECONDS: int = 60
     OTP_MAX_RESENDS_PER_HOUR: int = 5
-
-    # AI Configuration (Optional live API keys; local fallback active if omitted)
+    TELEGRAM_BOT_TOKEN: Optional[str] = os.getenv("TELEGRAM_BOT_TOKEN")
+    TELEGRAM_SESSION_TIMEOUT_SECONDS: int = int(os.getenv("TELEGRAM_SESSION_TIMEOUT_SECONDS", "120"))
     GEMINI_API_KEY: Optional[str] = os.getenv("GEMINI_API_KEY", None)
     OPENAI_API_KEY: Optional[str] = os.getenv("OPENAI_API_KEY", None)
     EMBEDDING_MODEL: str = "text-embedding-004"
     LLM_MODEL: str = "gemini-1.5-flash"
-
-    # Storage & Upload Limits
     STORAGE_DIR: str = os.getenv("STORAGE_DIR", "./storage")
-    MAX_UPLOAD_SIZE_BYTES: int = 15 * 1024 * 1024  # 15 MB
+    MAX_UPLOAD_SIZE_BYTES: int = 15 * 1024 * 1024
     ALLOWED_EXTENSIONS: List[str] = ["pdf", "txt", "md"]
-
-    # RAG Tuning
     CHUNK_SIZE: int = 600
     CHUNK_OVERLAP: int = 120
     SIMILARITY_THRESHOLD: float = 0.25
     TOP_K_CHUNKS: int = 4
-
-    # CORS
     CORS_ORIGINS: List[str] = [
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:8000",
-        "http://127.0.0.1:8000",
-        "*"
+        "http://localhost:3000", "http://127.0.0.1:3000",
+        "http://localhost:8000", "http://127.0.0.1:8000", "*"
     ]
-
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        extra="ignore"
-    )
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 
 settings = Settings()
-
 if not settings.SECRET_KEY:
     if settings.ENVIRONMENT.lower() == "production":
         raise RuntimeError("SECRET_KEY must be configured in production")
     settings.SECRET_KEY = "local-development-only-change-me"
-
-# Ensure storage directory exists
 os.makedirs(settings.STORAGE_DIR, exist_ok=True)

@@ -1,0 +1,10 @@
+﻿# SaaSsum AI Demo Questions
+
+Use these questions after uploading the sample documents:
+
+1. What are Acme Support's response targets?
+2. What is the refund window in the Acme handbook?
+3. How many vacation days does Northstar provide?
+4. What is the GreenLeaf product warranty period?
+5. What information is needed for a warranty claim?
+6. Ask about a fact that is not in the uploaded document and confirm that the assistant declines to invent an answer.

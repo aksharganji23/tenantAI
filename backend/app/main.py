@@ -1,11 +1,11 @@
-from fastapi import FastAPI, Depends
+﻿from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import inspect, text
 
 from app.config import settings
 from app.database import engine, Base, get_db
-from app.models import EmailVerificationCode  # noqa: F401
+from app.models import EmailVerificationCode, TelegramSession  # noqa: F401
 
 # Import routers
 from app.api.auth import router as auth_router
@@ -86,3 +86,4 @@ def root():
         "status": "online",
         "documentation": "/docs"
     }
+

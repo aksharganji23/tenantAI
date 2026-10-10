@@ -228,3 +228,72 @@ Telegram integration is not present in the inherited repository; no bot token, d
 ---
 
 Developed for **TriCity AI Hackathon — SaaSsum AI**. All rights reserved.
+
+## Telegram bot setup
+
+The Telegram service is implemented in `backend/telegram_bot.py` and uses the same SQLAlchemy database, users, tenants, documents, RAG engine, conversations, and audit logs as the web application. It does not create a second database.
+
+### Install and configure
+
+```powershell
+cd D:\AI_bot\backend
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+Copy-Item .env.example .env -ErrorAction SilentlyContinue
+notepad .env
+```
+
+Set the BotFather token in `backend/.env`:
+
+```env
+TELEGRAM_BOT_TOKEN=your-token-from-botfather
+TELEGRAM_SESSION_TIMEOUT_SECONDS=120
+```
+
+Start the web API in one terminal:
+
+```powershell
+cd D:\AI_bot\backend
+.\.venv\Scripts\Activate.ps1
+$env:PYTHONPATH="."
+python run.py
+```
+
+Start the Telegram bot in a second terminal:
+
+```powershell
+cd D:\AI_bot\backend
+.\.venv\Scripts\Activate.ps1
+$env:PYTHONPATH="."
+python telegram_bot.py
+```
+
+### Bot commands
+
+- `/start` - welcome and usage instructions
+- `/login` - authenticate using a verified SaaSsum AI account
+- `/status` - show company and remaining session time
+- `/help` - show commands
+- `/logout` - immediately revoke the Telegram session
+- After login, send a plain-text question about uploaded company documents
+
+Telegram sessions are bound to the Telegram chat ID, scoped to the authenticated user's tenant, audited, and invalidated after 120 seconds without activity. The bot never stores the user's password.
+
+### BotFather
+
+1. Open Telegram and search for `@BotFather`.
+2. Send `/newbot`.
+3. Choose a display name such as `SaaSsum AI Assistant`.
+4. Choose a unique username ending in `bot`, such as `saassum_ai_assistant_bot`.
+5. Copy the token and put it only in `backend/.env` as `TELEGRAM_BOT_TOKEN`.
+6. Start `python telegram_bot.py`, open your bot in Telegram, and send `/start`.
+# Sample documents
+
+The `backend/sample_documents` folder contains safe upload-ready TXT files:
+
+- `acme_support_handbook.txt`
+- `northstar_employee_policy.txt`
+- `greenleaf_product_warranty.txt`
+- `saassum_demo_questions.txt`
+
+Upload documents one at a time from the web application's Documents page. Use questions from `saassum_demo_questions.txt` to demonstrate grounded answers and out-of-domain refusal.

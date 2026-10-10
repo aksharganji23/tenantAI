@@ -1,0 +1,10 @@
+﻿# Acme Support Handbook
+
+Company: Acme Support
+Department: Customer Operations
+
+Support hours are Monday through Friday from 09:00 to 18:00 local time. Priority one incidents should be acknowledged within 30 minutes. Standard support requests should receive a response within one business day.
+
+Customers may request a refund within 30 calendar days of purchase when proof of purchase is available. Items must be returned in resalable condition. Digital services are refundable only when the service has not been substantially used.
+
+Escalate suspected security incidents immediately to the Security Operations team. Never share customer passwords, API keys, or private documents in a support response.

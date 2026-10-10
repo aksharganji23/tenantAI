@@ -1,0 +1,7 @@
+﻿# Northstar Employee Policy
+
+Northstar employees receive 20 paid vacation days per calendar year. Vacation requests should be submitted at least five working days before the planned start date when practical.
+
+The company laptop replacement cycle is three years. Lost or stolen equipment must be reported to IT and Security within four hours of discovery.
+
+Confidential company information may be accessed only for authorized business purposes. Employees must use multi-factor authentication and must not upload confidential documents to personal services.
