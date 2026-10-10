@@ -80,6 +80,10 @@ def command_list() -> str:
     )
 
 
+def with_command_list(message: str) -> str:
+    return f"{message}\n\nAvailable commands:\n\n{command_list()}"
+
+
 def authenticated_context(chat_id: int):
     """Return an active session, user, and database session for one Telegram chat."""
     db = SessionLocal()
@@ -296,13 +300,21 @@ async def handle_document_upload(update: Update, context: ContextTypes.DEFAULT_T
         extension = os.path.splitext(original_name)[1].lower().lstrip(".")
         if extension not in settings.ALLOWED_EXTENSIONS:
             await update.message.reply_text(
-                f"Unsupported file type .{extension}. Allowed: {', '.join(settings.ALLOWED_EXTENSIONS)}"
+                with_command_list(
+                    f"Upload unsuccessful.\n"
+                    f"Unsupported file type .{extension}. "
+                    f"Allowed: {', '.join(settings.ALLOWED_EXTENSIONS)}"
+                )
             )
             return
         tenant = db.query(Tenant).filter(Tenant.id == session.tenant_id).first()
         document_count = db.query(Document).filter(Document.tenant_id == session.tenant_id).count()
         if tenant and document_count >= tenant.quota_docs:
-            await update.message.reply_text("Your company document quota has been reached.")
+            await update.message.reply_text(
+                with_command_list(
+                    "Upload unsuccessful.\nYour company document quota has been reached."
+                )
+            )
             return
 
         storage_dir = os.path.join(settings.STORAGE_DIR, f"tenant_{session.tenant_id}")
@@ -314,7 +326,11 @@ async def handle_document_upload(update: Update, context: ContextTypes.DEFAULT_T
         file_size = os.path.getsize(saved_path)
         if file_size > settings.MAX_UPLOAD_SIZE_BYTES:
             os.remove(saved_path)
-            await update.message.reply_text("The file exceeds the maximum upload size.")
+            await update.message.reply_text(
+                with_command_list(
+                    "Upload unsuccessful.\nThe file exceeds the maximum upload size."
+                )
+            )
             return
 
         record = Document(
@@ -360,8 +376,12 @@ async def handle_document_upload(update: Update, context: ContextTypes.DEFAULT_T
                 details=f"Uploaded '{original_name}' ({len(chunks)} chunks)",
             )
             await update.message.reply_text(
-                f"Uploaded successfully: {record.title}\n"
-                f"Status: READY\nChunks: {record.chunk_count}"
+                with_command_list(
+                    f"Upload successful.\n"
+                    f"Document: {record.title}\n"
+                    f"Status: READY\n"
+                    f"Chunks: {record.chunk_count}"
+                )
             )
         except Exception as error:
             record.status = "FAILED"
@@ -376,7 +396,16 @@ async def handle_document_upload(update: Update, context: ContextTypes.DEFAULT_T
                 "ERROR",
                 details=f"Failed processing '{original_name}': {error}",
             )
-            await update.message.reply_text(f"Document processing failed: {error}")
+            await update.message.reply_text(
+                with_command_list(
+                    f"Upload unsuccessful.\nDocument processing failed: {error}"
+                )
+            )
+    except Exception as error:
+        logger.exception("Telegram document upload failed")
+        await update.message.reply_text(
+            with_command_list(f"Upload unsuccessful.\nCould not receive the file: {error}")
+        )
     finally:
         db.close()
 
