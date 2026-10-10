@@ -1,12 +1,12 @@
-# SaaSsum AI — Secure Multi-Tenant AI Chatbot Platform
+﻿# SaaSum AI â€” Secure Multi-Tenant AI Chatbot Platform
 
-> **TriCity AI Hackathon MVP** | Track: SaaSsum AI (IT & AI)  
+> **TriCity AI Hackathon MVP** | Track: SaaSum AI (IT & AI)  
 > Built by: Autonomous Senior Full-Stack & AI Engineering Team  
 > Live Frontend: `http://localhost:3000` | Live Backend API: `http://localhost:8001` (Docs: `http://localhost:8001/docs`)
 
 ---
 
-## 🚀 Executive Summary & Problem Statement
+## ðŸš€ Executive Summary & Problem Statement
 
 Enterprises cannot safely use shared or single-tenant AI solutions without risking cross-organizational data leakage. In typical naive RAG implementations, document search queries operate across a shared index, relying on fragile frontend filters that leave private intellectual property vulnerable to **Insecure Direct Object Reference (IDOR)** attacks.
 
@@ -18,7 +18,7 @@ Enterprises cannot safely use shared or single-tenant AI solutions without riski
 
 ---
 
-## 🏛️ System Architecture
+## ðŸ›ï¸ System Architecture
 
 ```mermaid
 graph TD
@@ -45,13 +45,13 @@ graph TD
 
 ---
 
-## 🔐 Current account lifecycle
+## ðŸ” Current account lifecycle
 
 New installations start without demo tenants or seeded credentials. A company administrator registers at `/register`, receives a six-digit OTP, verifies the email within five minutes, and can then sign in. OTP values are stored only as SHA-256 hashes. In development, leaving `SMTP_HOST` empty logs the code through the backend logger; configure SMTP before production use.
 
 The explicit cleanup utility is `backend/scripts/cleanup_demo_data.py`. It performs a dry run by default and creates a timestamped SQLite backup before deleting only the known repository demo slugs (`technova`, `greenleaf`) when invoked with `--apply`. It is never run at application startup.
 
-## 🏢 Legacy demo tenants
+## ðŸ¢ Legacy demo tenants
 
 The repository still contains legacy seed fixtures used by the existing tenant-isolation test suite. They are not loaded by the application anymore and are not exposed by the frontend.
 
@@ -65,7 +65,7 @@ The repository still contains legacy seed fixtures used by the existing tenant-i
 
 ---
 
-## 🛡️ Strict Tenant Isolation Model
+## ðŸ›¡ï¸ Strict Tenant Isolation Model
 
 TenantAI guarantees that **Company A (TechNova)** can never access or query **Company B (GreenLeaf)** resources:
 - **No Client-Supplied Tenant Spoofing**: The backend derives the caller's tenant ID strictly from the verified JWT server signature, ignoring arbitrary client query parameters.
@@ -84,7 +84,7 @@ TenantAI guarantees that **Company A (TechNova)** can never access or query **Co
 
 ---
 
-## 🎯 10-Step Official Jury Demonstration Sequence
+## ðŸŽ¯ 10-Step Official Jury Demonstration Sequence
 
 Follow this sequence for the official hackathon jury evaluation:
 
@@ -112,7 +112,7 @@ Follow this sequence for the official hackathon jury evaluation:
 
 ---
 
-## 💻 Local Setup & Execution Guide (Windows PowerShell)
+## ðŸ’» Local Setup & Execution Guide (Windows PowerShell)
 
 ### Prerequisites
 - Python 3.12+
@@ -151,7 +151,7 @@ cd d:\AI_bot\backend
 
 The backend reads `.env` from the `backend` directory. For Gmail delivery:
 
-1. Open your Google Account → **Security**.
+1. Open your Google Account â†’ **Security**.
 2. Enable **2-Step Verification**.
 3. Open **App passwords**, create one for this project, and copy the generated 16-character password.
 4. Copy `backend/.env.example` to `backend/.env`.
@@ -171,7 +171,7 @@ If `SMTP_HOST` is blank, the application does not send email; it prints a develo
 
 ---
 
-## 🐳 Docker Compose Deployment (PostgreSQL + pgvector)
+## ðŸ³ Docker Compose Deployment (PostgreSQL + pgvector)
 
 To run the complete production stack with PostgreSQL and pgvector:
 ```powershell
@@ -185,7 +185,7 @@ Services:
 
 ---
 
-## 📋 API Endpoints Reference
+## ðŸ“‹ API Endpoints Reference
 
 | Method | Endpoint | Description | Role / Scope |
 | :--- | :--- | :--- | :--- |
@@ -208,13 +208,13 @@ Services:
 
 ---
 
-## 🚀 Deployment notes
+## ðŸš€ Deployment notes
 
 The backend is deployable as a FastAPI container and the frontend as a Next.js container. Use managed PostgreSQL for production, persistent object storage for uploaded documents, a managed SMTP provider, and a worker-capable service if document processing becomes asynchronous. Configure `DATABASE_URL`, `SECRET_KEY`, `CORS_ORIGINS`, `STORAGE_DIR` or object storage settings, SMTP variables, `GEMINI_API_KEY`/`OPENAI_API_KEY` as applicable, and `NEXT_PUBLIC_API_URL`. Do not run the cleanup utility against production until the matching tenant list has been reviewed and the generated backup is verified.
 
-Telegram integration is not present in the inherited repository; no bot token, duplicate database, or unverified integration has been fabricated. The existing backend service and tenant-scoped RAG APIs are the integration points for a follow-up bot implementation.
+Telegram integration is implemented in `backend/telegram_bot.py` and uses the existing backend database and tenant-scoped RAG APIs.
 
-## 🏆 Hackathon Priority Compliance Matrix
+## ðŸ† Hackathon Priority Compliance Matrix
 
 | Priority | Feature Requirement | Implementation Status | Verification Method |
 | :--- | :--- | :--- | :--- |
@@ -227,7 +227,7 @@ Telegram integration is not present in the inherited repository; no bot token, d
 
 ---
 
-Developed for **TriCity AI Hackathon — SaaSsum AI**. All rights reserved.
+Developed for **TriCity AI Hackathon â€” SaaSum AI**. All rights reserved.
 
 ## Telegram bot setup
 
@@ -271,7 +271,7 @@ python telegram_bot.py
 ### Bot commands
 
 - `/start` - welcome and usage instructions
-- `/login` - authenticate using a verified SaaSsum AI account
+- `/login` - authenticate using a verified SaaSum AI account
 - `/status` - show company and remaining session time
 - `/help` - show commands
 - `/logout` - immediately revoke the Telegram session
@@ -283,8 +283,8 @@ Telegram sessions are bound to the Telegram chat ID, scoped to the authenticated
 
 1. Open Telegram and search for `@BotFather`.
 2. Send `/newbot`.
-3. Choose a display name such as `SaaSsum AI Assistant`.
-4. Choose a unique username ending in `bot`, such as `saassum_ai_assistant_bot`.
+3. Choose the display name `tenantAI`.
+4. Choose the username `tenantAI_bot` if it is available. Telegram usernames are unique and must end in `bot`; if it is already taken, use a close variant such as `tenantAI_chat_bot`.
 5. Copy the token and put it only in `backend/.env` as `TELEGRAM_BOT_TOKEN`.
 6. Start `python telegram_bot.py`, open your bot in Telegram, and send `/start`.
 # Sample documents
@@ -294,6 +294,8 @@ The `backend/sample_documents` folder contains safe upload-ready TXT files:
 - `acme_support_handbook.txt`
 - `northstar_employee_policy.txt`
 - `greenleaf_product_warranty.txt`
-- `saassum_demo_questions.txt`
+- `saasum_demo_questions.txt`
 
-Upload documents one at a time from the web application's Documents page. Use questions from `saassum_demo_questions.txt` to demonstrate grounded answers and out-of-domain refusal.
+Upload documents one at a time from the web application's Documents page. Use questions from `saasum_demo_questions.txt` to demonstrate grounded answers and out-of-domain refusal.
+
+

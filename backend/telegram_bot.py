@@ -1,4 +1,4 @@
-﻿"""Telegram interface for the shared SaaSsum AI backend and database.
+﻿"""Telegram interface for the shared SaaSum AI backend and database.
 
 Run from backend/ with:
     python telegram_bot.py
@@ -23,7 +23,7 @@ from app.services.audit_logger import log_event
 from app.services.rag_engine import run_rag_query
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-logger = logging.getLogger("saassum.telegram")
+logger = logging.getLogger("saasum.telegram")
 
 LOGIN_EMAIL = "telegram_login_email"
 LOGIN_PASSWORD = "telegram_login_password"
@@ -53,7 +53,7 @@ def expired_message() -> str:
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
-        "Welcome to SaaSsum AI.\n\n"
+        "Welcome to SaaSum AI.\n\n"
         "Use /login to authenticate with your verified company account.\n"
         "Then send a question about your company's uploaded documents.\n\n"
         "Commands: /login, /status, /help, /logout"
@@ -217,9 +217,10 @@ def main() -> None:
     application.add_handler(CommandHandler("status", status))
     application.add_handler(CommandHandler("logout", logout))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_login_or_question))
-    logger.info("SaaSsum AI Telegram bot started with %s-second inactivity sessions", settings.TELEGRAM_SESSION_TIMEOUT_SECONDS)
+    logger.info("SaaSum AI Telegram bot started with %s-second inactivity sessions", settings.TELEGRAM_SESSION_TIMEOUT_SECONDS)
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
 if __name__ == "__main__":
     main()
+
