@@ -182,7 +182,9 @@ async def handle_login_or_question(update: Update, context: ContextTypes.DEFAULT
             log_event(db, user.tenant_id, user.id, user.email, "telegram_login", "SUCCESS", details="Telegram session authenticated")
             await update.message.reply_text(
                 f"Authenticated for {user.tenant.name if user.tenant else 'your company'}. "
-                f"Your session expires after {settings.TELEGRAM_SESSION_TIMEOUT_SECONDS} seconds of inactivity."
+                f"Your session expires after {settings.TELEGRAM_SESSION_TIMEOUT_SECONDS} seconds of inactivity.\n\n"
+                "Here are the available commands:\n\n"
+                + command_list()
             )
         finally:
             db.close()
@@ -501,11 +503,34 @@ async def logout(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         db.close()
 
 
+async def post_init(application) -> None:
+    await application.bot.set_my_commands(
+        [
+            ("start", "Start tenantAI"),
+            ("help", "Show all available commands"),
+            ("status", "Show account and company status"),
+            ("documents", "List company documents"),
+            ("upload", "Upload a PDF, TXT, or MD file"),
+            ("conversations", "List saved chatbot conversations"),
+            ("audits", "Show audit and telemetry events"),
+            ("settings", "Show company settings"),
+            ("setcompany", "Update company name"),
+            ("setdomain", "Update company domain"),
+            ("logout", "Log out of Telegram"),
+        ]
+    )
+
+
 def main() -> None:
     if not settings.TELEGRAM_BOT_TOKEN or settings.TELEGRAM_BOT_TOKEN.startswith("replace-with"):
         raise RuntimeError("Set TELEGRAM_BOT_TOKEN in backend/.env before starting the bot.")
     Base.metadata.create_all(bind=engine)
-    application = ApplicationBuilder().token(settings.TELEGRAM_BOT_TOKEN).build()
+    application = (
+        ApplicationBuilder()
+        .token(settings.TELEGRAM_BOT_TOKEN)
+        .post_init(post_init)
+        .build()
+    )
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("login", login))
@@ -528,4 +553,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
