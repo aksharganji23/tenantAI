@@ -1,0 +1,31 @@
+# TechNova UltraBook Pro X15 - Enterprise Hardware Manual
+
+## Section 1: Hardware Specifications
+The TechNova UltraBook Pro X15 is an enterprise-grade mobile workstation engineered for artificial intelligence development, cloud software engineering, and intensive computational workloads.
+- Processor: Intel Core Ultra 9 185H (16 Cores, 22 Threads, up to 5.1 GHz Max Turbo Frequency) with dedicated Neural Processing Unit (NPU).
+- System Memory: 64 GB LPDDR5X 7467 MHz dual-channel high-speed soldered RAM. Maximum supported configuration is 64 GB.
+- Storage: 2 TB NVMe PCIe Gen 4.0 x4 M.2 2280 high-end solid state drive with dedicated aluminum heat sink. Secondary M.2 2280 expansion slot supports up to 4 TB additional storage.
+- Display: 16.0-inch 3.2K (3200 x 2000) OLED display, 120Hz refresh rate, 100% DCI-P3 color gamut, 500 nits peak HDR brightness, anti-reflective coating.
+- Chassis: CNC-machined aerospace-grade aluminum unibody finished in Space Gray. Weighs 1.78 kg (3.92 lbs).
+
+## Section 2: Power and Battery Management
+- Battery Capacity: 99.9 Wh lithium-polymer 6-cell internal battery, maximizing FAA airline carry-on regulations.
+- Battery Life: Up to 18 hours of continuous video playback, or up to 12.5 hours of continuous enterprise web browsing and coding productivity.
+- Charging: Supports 140W USB Power Delivery (USB-PD 3.1) via Thunderbolt 4 ports. Recharges from 0% to 60% in 35 minutes using the included GaN adapter.
+- Battery Warranty Coverage: TechNova provides 36 months limited hardware warranty on the chassis and motherboard, and 24 months full replacement coverage on the battery cell capacity guaranteeing at least 80% original retention.
+
+## Section 3: Enterprise Security and BIOS Management
+- Hardware Security: Discrete TPM 2.0 (Trusted Platform Module) cryptographic chip, Windows Hello IR facial recognition camera with privacy shutter, and fingerprint sensor integrated into the power button.
+- BIOS Password Reset Procedure:
+To perform an authorized BIOS password reset on the UltraBook Pro X15:
+1. Power off the device completely.
+2. Hold down the F2 key while pressing the Power button for 5 seconds until the TechNova Enterprise Diagnostics menu appears.
+3. Select "Security Recovery".
+4. Insert the authorized TechNova IT provisioning master USB dongle or enter the 32-character alphanumeric Enterprise Recovery Key generated from the TechNova IT Admin Portal.
+5. Once authenticated, select "Clear Supervisor Password" and confirm reboot.
+
+## Section 4: Thermal Architecture
+Dual high-efficiency centrifugal fans paired with an ultra-thin copper vapor chamber. Supported thermal modes via Fn+Q:
+- Quiet Mode (28 dBA, 35W CPU Package Power)
+- Balanced Mode (36 dBA, 65W CPU Package Power)
+- Performance Mode (44 dBA, 90W CPU Package Power)

@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: tenantai-db
+    restart: always
+    environment:
+      POSTGRES_USER: tenantai_user
+      POSTGRES_PASSWORD: tenantai_secure_pass
+      POSTGRES_DB: tenantai_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tenantai_user -d tenantai_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tenantai-backend
+    restart: always
+    environment:
+      PORT: 8001
+      DATABASE_URL: postgresql://tenantai_user:tenantai_secure_pass@db:5432/tenantai_db
+      SECRET_KEY: tenantai-super-secret-jwt-encryption-key-hackathon-2025
+      STORAGE_DIR: /app/storage
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    ports:
+      - "8001:8001"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - backend-storage:/app/storage
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: tenantai-frontend
+    restart: always
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8001
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  backend-storage:
