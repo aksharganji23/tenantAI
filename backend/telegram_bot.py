@@ -1,4 +1,4 @@
-﻿"""Telegram interface for the shared SaaSum AI backend and database.
+"""Telegram interface for the shared SaaSum AI backend and database.
 
 Run from backend/ with:
     python telegram_bot.py
@@ -7,6 +7,7 @@ The bot never stores Telegram passwords. A successful /login creates a database
 session bound to the Telegram chat ID and expires it after inactivity.
 """
 
+import asyncio
 import json
 import logging
 from datetime import datetime, timedelta
@@ -218,9 +219,12 @@ def main() -> None:
     application.add_handler(CommandHandler("logout", logout))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_login_or_question))
     logger.info("SaaSum AI Telegram bot started with %s-second inactivity sessions", settings.TELEGRAM_SESSION_TIMEOUT_SECONDS)
+    # Python 3.14 no longer creates a default event loop for the main thread.
+    asyncio.set_event_loop(asyncio.new_event_loop())
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
 if __name__ == "__main__":
     main()
+
 
