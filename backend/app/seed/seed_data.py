@@ -14,6 +14,9 @@ from app.services.document_parser import extract_text_from_txt, chunk_pages_text
 from app.services.embeddings import get_embedding
 
 
+JURY_PASSWORD = "DemoPass123!"
+
+
 def run_seed(db: Session = None):
     """Seed demo tenants, users, sample documents, chunks, and logs."""
     close_db_after = False
@@ -252,6 +255,128 @@ def run_seed(db: Session = None):
             db.add_all(sample_logs)
             db.commit()
             print("[Seed] Seeded baseline telemetry logs.")
+
+        # 6. Seed tenant-scoped conversation history for the jury dashboard.
+        # Conversations are keyed by title and user so this remains safe to rerun.
+        demo_conversations = [
+            {
+                "tenant": technova,
+                "email": "admin@technova.com",
+                "title": "UltraBook warranty coverage",
+                "question": "What is the warranty coverage for the battery?",
+                "answer": (
+                    "The TechNova UltraBook Pro X15 includes a 36-month chassis warranty "
+                    "and a 24-month battery replacement guarantee."
+                ),
+                "document_title": "TechNova UltraBook Pro X15 Hardware Manual",
+            },
+            {
+                "tenant": technova,
+                "email": "user@technova.com",
+                "title": "UltraBook battery care",
+                "question": "How should the UltraBook battery be maintained?",
+                "answer": (
+                    "For best battery life, keep the device in a cool, dry environment, "
+                    "avoid blocking ventilation, and use the approved USB-C charger."
+                ),
+                "document_title": "TechNova UltraBook Pro X15 Hardware Manual",
+            },
+            {
+                "tenant": greenleaf,
+                "email": "admin@greenleaf.com",
+                "title": "Customer refund window",
+                "question": "What is the return window for purchases?",
+                "answer": (
+                    "GreenLeaf accepts eligible returns within 30 days of purchase when "
+                    "the customer provides a valid receipt and the item is in resalable condition."
+                ),
+                "document_title": "GreenLeaf Customer Refund & Return Policy",
+            },
+            {
+                "tenant": greenleaf,
+                "email": "user@greenleaf.com",
+                "title": "Restocking fee policy",
+                "question": "When does GreenLeaf charge a restocking fee?",
+                "answer": (
+                    "A restocking fee may apply to opened or used items unless the return "
+                    "is due to a verified product defect."
+                ),
+                "document_title": "GreenLeaf Customer Refund & Return Policy",
+            },
+        ]
+
+        for item in demo_conversations:
+            user = (
+                db.query(User)
+                .filter(
+                    User.email == item["email"],
+                    User.tenant_id == item["tenant"].id,
+                )
+                .first()
+            )
+            document = (
+                db.query(Document)
+                .filter(
+                    Document.tenant_id == item["tenant"].id,
+                    Document.title == item["document_title"],
+                    Document.status == "READY",
+                )
+                .first()
+            )
+            if not user or not document:
+                continue
+
+            existing_conversation = (
+                db.query(Conversation)
+                .filter(
+                    Conversation.tenant_id == item["tenant"].id,
+                    Conversation.user_id == user.id,
+                    Conversation.title == item["title"],
+                )
+                .first()
+            )
+            if existing_conversation:
+                continue
+
+            conversation = Conversation(
+                tenant_id=item["tenant"].id,
+                user_id=user.id,
+                title=item["title"],
+            )
+            db.add(conversation)
+            db.flush()
+            citation = json.dumps(
+                [
+                    {
+                        "document_title": document.title,
+                        "page_number": 1,
+                        "excerpt": item["answer"],
+                        "relevance_score": 0.98,
+                    }
+                ]
+            )
+            db.add_all(
+                [
+                    Message(
+                        conversation_id=conversation.id,
+                        tenant_id=item["tenant"].id,
+                        sender="user",
+                        content=item["question"],
+                    ),
+                    Message(
+                        conversation_id=conversation.id,
+                        tenant_id=item["tenant"].id,
+                        sender="assistant",
+                        content=item["answer"],
+                        citations=citation,
+                        confidence_score=0.98,
+                        latency_ms=180,
+                        tokens_used=48,
+                    ),
+                ]
+            )
+            print(f"[Seed] Created conversation: {item['title']} ({item['tenant'].slug})")
+        db.commit()
 
         print("[Seed] Seed data successfully applied!")
 

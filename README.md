@@ -51,6 +51,33 @@ New installations start without demo tenants or seeded credentials. A company ad
 
 The explicit cleanup utility is `backend/scripts/cleanup_demo_data.py`. It performs a dry run by default and creates a timestamped SQLite backup before deleting only the known repository demo slugs (`technova`, `greenleaf`) when invoked with `--apply`. It is never run at application startup.
 
+### Jury demonstration data
+
+To populate a local database with the two isolated demo companies, their verified
+accounts, sample documents, audit records, and tenant-scoped conversation history,
+run this explicit command from `backend/`:
+
+```powershell
+cd D:\AI_bot\backend
+.\.venv\Scripts\Activate.ps1
+$env:PYTHONPATH="."
+python scripts\seed_jury_demo.py
+```
+
+The command is safe to rerun and does not seed data automatically when the API starts.
+Use these local jury credentials:
+
+| Company / role | Email | Password |
+| :--- | :--- | :--- |
+| TechNova admin | `admin@technova.com` | `DemoPass123!` |
+| TechNova user | `user@technova.com` | `DemoPass123!` |
+| GreenLeaf admin | `admin@greenleaf.com` | `DemoPass123!` |
+| GreenLeaf user | `user@greenleaf.com` | `DemoPass123!` |
+| Global superadmin | `admin@tenantai.com` | `SuperAdmin123!` |
+
+The seeded conversations belong to the matching user and tenant. A TechNova account
+cannot list or read GreenLeaf documents or conversations, and vice versa.
+
 ## ðŸ¢ Legacy demo tenants
 
 The repository still contains legacy seed fixtures used by the existing tenant-isolation test suite. They are not loaded by the application anymore and are not exposed by the frontend.
@@ -297,5 +324,4 @@ The `backend/sample_documents` folder contains safe upload-ready TXT files:
 - `saasum_demo_questions.txt`
 
 Upload documents one at a time from the web application's Documents page. Use questions from `saasum_demo_questions.txt` to demonstrate grounded answers and out-of-domain refusal.
-
 
