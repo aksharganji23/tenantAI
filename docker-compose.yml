@@ -28,7 +28,9 @@ services:
     environment:
       PORT: 8001
       DATABASE_URL: postgresql://tenantai_user:tenantai_secure_pass@db:5432/tenantai_db
-      SECRET_KEY: tenantai-super-secret-jwt-encryption-key-hackathon-2025
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY before starting Docker Compose}
+      ENVIRONMENT: production
+      CORS_ORIGINS: '["http://localhost:3000"]'
       STORAGE_DIR: /app/storage
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
     ports:

@@ -1,6 +1,8 @@
 ﻿from typing import List, Optional
 import os
+import json
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -37,9 +39,24 @@ class Settings(BaseSettings):
     SIMILARITY_THRESHOLD: float = 0.25
     TOP_K_CHUNKS: int = 4
     CORS_ORIGINS: List[str] = [
-        "http://localhost:3000", "http://127.0.0.1:3000",
-        "http://localhost:8000", "http://127.0.0.1:8000", "*"
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
     ]
+
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, value):
+        if isinstance(value, list):
+            return value
+        if isinstance(value, str):
+            try:
+                parsed = json.loads(value)
+                if isinstance(parsed, list):
+                    return parsed
+            except json.JSONDecodeError:
+                pass
+            return [origin.strip() for origin in value.split(",") if origin.strip()]
+        return value
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 

@@ -313,6 +313,11 @@ python telegram_bot.py
 
 Telegram sessions are bound to the Telegram chat ID, scoped to the authenticated user's tenant, audited, and invalidated after 120 seconds without activity. The bot never stores the user's password. Document uploads use the same parser, chunking, embeddings, quotas, and tenant scope as the web application. Settings changes are limited to tenant admins.
 
+For Render, the repository includes `render.yaml` with separate frontend, FastAPI,
+PostgreSQL, and Telegram worker services. Set `CORS_ORIGINS` to a JSON array
+containing the deployed frontend URL and run `python scripts/seed_jury_demo.py`
+from the backend service shell after the database is provisioned.
+
 ### BotFather
 
 1. Open Telegram and search for `@BotFather`.

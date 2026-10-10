@@ -388,8 +388,10 @@ async def handle_document_upload(update: Update, context: ContextTypes.DEFAULT_T
             )
         except Exception as error:
             record.status = "FAILED"
-            record.error_message = str(error)
+            record.error_message = "Document processing failed."
             db.commit()
+            if os.path.exists(saved_path):
+                os.remove(saved_path)
             log_event(
                 db,
                 session.tenant_id,
@@ -397,11 +399,12 @@ async def handle_document_upload(update: Update, context: ContextTypes.DEFAULT_T
                 user.email,
                 "telegram_doc_upload",
                 "ERROR",
-                details=f"Failed processing '{original_name}': {error}",
+                details=f"Failed processing '{original_name}': {type(error).__name__}",
             )
             await update.message.reply_text(
                 with_command_list(
-                    f"Upload unsuccessful.\nDocument processing failed: {error}"
+                    "Upload unsuccessful.\nThe document could not be processed. "
+                    "Check that it contains readable text and try again."
                 )
             )
     except Exception as error:
