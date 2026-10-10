@@ -1,0 +1,5 @@
+import Link from 'next/link';
+
+export default function TermsPage() {
+  return <main className="min-h-screen bg-[var(--background)] px-6 py-16 text-[var(--foreground)]"><article className="prose prose-invert mx-auto max-w-3xl"><Link href="/" className="text-teal-300">← Back to tenantAI</Link><h1>Terms &amp; conditions</h1><p>Last updated: October 11, 2026</p><h2>Acceptable use</h2><p>Use tenantAI only for lawful business purposes. Keep credentials private and do not attempt to access another company’s workspace or documents.</p><h2>Your content</h2><p>You retain responsibility for the documents and prompts submitted to your workspace, including ensuring you have the rights to process them.</p><h2>Service operation</h2><p>We aim to keep the service reliable, but availability may vary during maintenance, updates, or infrastructure incidents.</p><h2>Security</h2><p>Use strong credentials and report suspected unauthorized access to your workspace administrator promptly.</p><h2>Contact</h2><p>Questions about these terms should be directed to your tenantAI service administrator.</p></article></main>;
+}

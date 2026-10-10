@@ -31,7 +31,7 @@ export default function Navbar() {
         <Link href="/dashboard" className="flex items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-500 text-slate-950"><ShieldCheck className="h-5 w-5" /></div>
           <div>
-            <div className="font-bold tracking-tight text-slate-900 dark:text-white">SaaSsum<span className="text-teal-500"> AI</span></div>
+            <div className="font-bold tracking-tight text-slate-900 dark:text-white">tenant<span className="text-teal-500">AI</span></div>
             <div className="text-[11px] text-slate-400">{tenant?.name || user?.tenant_name || 'Secure company workspace'}</div>
           </div>
         </Link>

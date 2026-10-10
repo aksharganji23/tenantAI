@@ -36,7 +36,7 @@ export default function LoginPage() {
             <ShieldCheck className="h-7 w-7" />
           </div>
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-teal-400/20 bg-teal-400/10 px-3 py-1 text-xs font-semibold text-teal-300">
-            <Sparkles className="h-3.5 w-3.5" /> SaaSsum AI
+            <Sparkles className="h-3.5 w-3.5" /> tenantAI
           </div>
           <h1 className="text-3xl font-black tracking-tight">Welcome back</h1>
           <p className="mt-2 text-sm text-slate-400">Sign in to your verified company workspace.</p>
