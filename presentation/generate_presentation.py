@@ -3,27 +3,35 @@ from pathlib import Path
 from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE
-from pptx.enum.text import PP_ALIGN
+from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from pptx.util import Inches, Pt
 
 
-OUT = Path(__file__).with_name("SaaSsum_AI_Presentation.pptx")
-BG = RGBColor(11, 17, 32)
-CARD = RGBColor(17, 26, 45)
-TEXT = RGBColor(229, 237, 247)
-MUTED = RGBColor(148, 163, 184)
-ACCENT = RGBColor(45, 212, 191)
+OUT = Path(__file__).with_name("TenantAI_Jury_Presentation.pptx")
+WIDTH = 13.333
+HEIGHT = 7.5
+BG = RGBColor(7, 13, 27)
+PANEL = RGBColor(16, 27, 48)
+PANEL_2 = RGBColor(20, 36, 62)
+TEXT = RGBColor(239, 246, 255)
+MUTED = RGBColor(156, 173, 197)
+TEAL = RGBColor(45, 212, 191)
+BLUE = RGBColor(96, 165, 250)
+AMBER = RGBColor(251, 191, 36)
+RED = RGBColor(248, 113, 113)
+LINE = RGBColor(46, 67, 98)
 
 
-def add_text(slide, text, x, y, w, h, size=24, color=TEXT, bold=False, align=PP_ALIGN.LEFT):
+def text(slide, value, x, y, w, h, size=18, color=TEXT, bold=False, align=PP_ALIGN.LEFT):
     box = slide.shapes.add_textbox(Inches(x), Inches(y), Inches(w), Inches(h))
     frame = box.text_frame
     frame.clear()
     frame.word_wrap = True
+    frame.vertical_anchor = MSO_ANCHOR.TOP
     paragraph = frame.paragraphs[0]
     paragraph.alignment = align
     run = paragraph.add_run()
-    run.text = text
+    run.text = value
     run.font.name = "Aptos"
     run.font.size = Pt(size)
     run.font.bold = bold
@@ -31,180 +39,251 @@ def add_text(slide, text, x, y, w, h, size=24, color=TEXT, bold=False, align=PP_
     return box
 
 
-def add_card(slide, x, y, w, h, title, body):
-    shape = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(x), Inches(y), Inches(w), Inches(h))
+def panel(slide, x, y, w, h, title, body, accent=TEAL, size=12):
+    shape = slide.shapes.add_shape(
+        MSO_SHAPE.ROUNDED_RECTANGLE, Inches(x), Inches(y), Inches(w), Inches(h)
+    )
     shape.fill.solid()
-    shape.fill.fore_color.rgb = CARD
-    shape.line.color.rgb = RGBColor(45, 58, 82)
-    add_text(slide, title, x + 0.2, y + 0.18, w - 0.4, 0.35, 15, ACCENT, True)
-    add_text(slide, body, x + 0.2, y + 0.65, w - 0.4, h - 0.8, 11, TEXT)
+    shape.fill.fore_color.rgb = PANEL
+    shape.line.color.rgb = LINE
+    text(slide, title, x + 0.2, y + 0.17, w - 0.4, 0.3, 14, accent, True)
+    text(slide, body, x + 0.2, y + 0.62, w - 0.4, h - 0.76, size, TEXT)
 
 
-def base_slide(prs, title, subtitle=""):
+def metric(slide, x, y, w, value, label, accent=TEAL):
+    shape = slide.shapes.add_shape(
+        MSO_SHAPE.ROUNDED_RECTANGLE, Inches(x), Inches(y), Inches(w), Inches(1.1)
+    )
+    shape.fill.solid()
+    shape.fill.fore_color.rgb = PANEL_2
+    shape.line.color.rgb = LINE
+    text(slide, value, x + 0.12, y + 0.12, w - 0.24, 0.4, 24, accent, True, PP_ALIGN.CENTER)
+    text(slide, label, x + 0.12, y + 0.62, w - 0.24, 0.25, 9, MUTED, False, PP_ALIGN.CENTER)
+
+
+def base(prs, title, subtitle="", section="PRODUCT"):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     slide.background.fill.solid()
     slide.background.fill.fore_color.rgb = BG
-    add_text(slide, title, 0.65, 0.45, 12, 0.55, 28, TEXT, True)
+    slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(0), Inches(0.12), Inches(HEIGHT)).fill.solid()
+    slide.shapes[-1].fill.fore_color.rgb = TEAL
+    text(slide, section, 0.72, 0.25, 2, 0.22, 9, TEAL, True)
+    text(slide, title, 0.68, 0.52, 12, 0.52, 27, TEXT, True)
     if subtitle:
-        add_text(slide, subtitle, 0.68, 1.08, 11.8, 0.35, 12, MUTED)
-    add_text(slide, f"tenantAI  |  jury presentation  |  {len(prs.slides):02d}", 0.68, 7.16, 12, 0.2, 8, MUTED)
+        text(slide, subtitle, 0.7, 1.08, 11.8, 0.3, 11, MUTED)
+    number = len(prs.slides)
+    text(slide, f"tenantAI  |  TriCity AI Hackathon  |  {number:02d}", 0.7, 7.16, 12, 0.18, 8, MUTED)
     return slide
 
 
+def add_flow(slide, labels, y=2.4, start=0.65, width=1.45, gap=0.18):
+    for index, label in enumerate(labels):
+        x = start + index * (width + gap)
+        shape = slide.shapes.add_shape(
+            MSO_SHAPE.ROUNDED_RECTANGLE, Inches(x), Inches(y), Inches(width), Inches(0.9)
+        )
+        shape.fill.solid()
+        shape.fill.fore_color.rgb = PANEL_2
+        shape.line.color.rgb = TEAL
+        text(slide, str(index + 1), x + 0.08, y + 0.1, 0.22, 0.2, 10, TEAL, True)
+        text(slide, label, x + 0.28, y + 0.18, width - 0.36, 0.48, 11, TEXT, True, PP_ALIGN.CENTER)
+
+
 prs = Presentation()
-prs.slide_width = Inches(13.333)
-prs.slide_height = Inches(7.5)
+prs.slide_width = Inches(WIDTH)
+prs.slide_height = Inches(HEIGHT)
 
-slide = base_slide(prs, "tenantAI", "Secure multi-tenant AI knowledge platform | Hackathon presentation")
-add_text(slide, "Company knowledge, grounded answers, and tenant isolation in one workspace.", 0.8, 2.1, 11.5, 1.0, 30, TEXT, True)
-add_text(slide, "FastAPI + SQLAlchemy + Next.js + tenant-scoped RAG + security telemetry", 0.85, 3.35, 11.2, 0.45, 16, ACCENT)
-add_text(slide, "The product turns scattered company documents into a searchable, auditable assistant without making privacy a configuration afterthought.", 0.85, 4.15, 11.3, 0.65, 16, TEXT)
-add_text(slide, "TriCity AI Hackathon | SaaSsum AI track | MVP built for a jury-verifiable demo", 0.85, 6.55, 11.5, 0.3, 11, MUTED)
+# 01 - Cover
+slide = base(prs, "tenantAI", "Secure multi-tenant AI knowledge platform", "PITCH")
+text(slide, "Company knowledge.\nGrounded answers.\nProvable isolation.", 0.9, 1.85, 7.2, 2.2, 31, TEXT, True)
+text(slide, "An enterprise assistant that turns private documents into cited answers while enforcing the workspace boundary in the backend.", 0.95, 4.35, 7.2, 0.8, 17, MUTED)
+metric(slide, 9.0, 2.0, 1.65, "RAG", "grounded answers", TEAL)
+metric(slide, 10.85, 2.0, 1.65, "RBAC", "role controls", BLUE)
+metric(slide, 9.0, 3.35, 1.65, "404", "hidden IDOR", AMBER)
+metric(slide, 10.85, 3.35, 1.65, "OTP", "verified identity", TEAL)
+text(slide, "TriCity AI Hackathon | SaaSsum AI track | jury-ready MVP", 0.95, 6.3, 8.5, 0.3, 12, TEAL, True)
 
-slide = base_slide(prs, "The problem", "Enterprise knowledge is valuable only when it is findable and isolated.")
-add_card(slide, 0.75, 1.8, 3.8, 3.3, "Fragmented knowledge", "Teams search across PDFs, manuals, and policies with no consistent answer path.\n\nImpact: duplicated effort, inconsistent guidance, and slow onboarding.")
-add_card(slide, 4.8, 1.8, 3.8, 3.3, "Slow decisions", "Manual document review consumes time and makes answers difficult to audit.\n\nImpact: support teams spend time finding facts instead of acting on them.")
-add_card(slide, 8.85, 1.8, 3.8, 3.3, "Isolation risk", "A shared retrieval layer can expose another company's private information.\n\nImpact: one IDOR or missing filter can become a multi-tenant breach.")
+# 02 - One minute pitch
+slide = base(prs, "The one-minute pitch", "What tenantAI does and why it matters", "PITCH")
+panel(slide, 0.75, 1.7, 3.8, 3.9, "THE PAIN", "Company knowledge is trapped in PDFs, manuals, and policies. Teams lose time searching, answers are hard to verify, and naive shared AI search can leak one company's information to another.", RED, 14)
+panel(slide, 4.8, 1.7, 3.8, 3.9, "THE PRODUCT", "tenantAI gives each company a private knowledge workspace. Users upload approved material, ask natural-language questions, receive source citations, and see the answer path through audit telemetry.", TEAL, 14)
+panel(slide, 8.85, 1.7, 3.8, 3.9, "THE PROOF", "The jury can switch between TechNova and GreenLeaf, compare answers, attempt a cross-tenant resource read, observe HTTP 404 with zero leaked bytes, and inspect the security event.", AMBER, 14)
 
-slide = base_slide(prs, "The solution", "A secure assistant for each company's own knowledge boundary.")
-add_card(slide, 0.8, 1.8, 3.7, 3.7, "Register", "Create a company workspace and verify the administrator email with a six-digit OTP.\n\nControl: unverified accounts cannot log in.")
-add_card(slide, 4.8, 1.8, 3.7, 3.7, "Retrieve", "Search only READY documents belonging to the authenticated tenant.\n\nControl: tenant scope is applied server-side, not taken from the browser.")
-add_card(slide, 8.8, 1.8, 3.7, 3.7, "Answer", "Return grounded responses with document and page citations plus audit telemetry.\n\nControl: unsupported questions receive an explicit refusal.")
+# 03 - Problem
+slide = base(prs, "Why current enterprise search breaks", "The problem combines productivity, trust, and security", "PROBLEM")
+panel(slide, 0.75, 1.75, 2.85, 3.8, "01  FINDABILITY", "Important knowledge is distributed across manuals, policies, and operational files.\n\nPeople ask the same questions repeatedly.", BLUE)
+panel(slide, 3.75, 1.75, 2.85, 3.8, "02  CONFIDENCE", "A fluent answer without a source is difficult to approve, explain, or correct.\n\nThe cost is slow decisions.", AMBER)
+panel(slide, 6.75, 1.75, 2.85, 3.8, "03  PRIVACY", "A shared vector search without strict ownership filters can return another company's content.\n\nOne missing predicate is enough.", RED)
+panel(slide, 9.75, 1.75, 2.85, 3.8, "04  GOVERNANCE", "Without audit events, operators cannot explain who asked what, which tenant was used, or whether a security probe was blocked.", TEAL)
+text(slide, "tenantAI treats tenant boundaries as a core product capability, not a frontend checkbox.", 1.0, 6.15, 11.3, 0.35, 15, TEAL, True, PP_ALIGN.CENTER)
 
-slide = base_slide(prs, "Who benefits?", "One platform supports several enterprise personas without mixing their data.")
-add_card(slide, 0.75, 1.8, 3.8, 3.55, "Company administrator", "Creates the workspace, manages members, reviews usage, and monitors security events.\n\nSuccess signal: clear ownership and faster policy decisions.")
-add_card(slide, 4.8, 1.8, 3.8, 3.55, "Knowledge worker", "Uploads approved material, asks natural-language questions, and reuses conversation history.\n\nSuccess signal: answer plus citation in seconds.")
-add_card(slide, 8.85, 1.8, 3.8, 3.55, "Platform operator", "Uses SuperAdmin analytics, tenant summaries, quotas, and the live IDOR simulator.\n\nSuccess signal: usage and risk are visible, not hidden.")
-add_text(slide, "Value: faster answers, fewer repeated support questions, and evidence that each answer stayed inside the correct workspace.", 0.95, 6.0, 11.4, 0.55, 15, ACCENT, False, PP_ALIGN.CENTER)
+# 04 - Solution
+slide = base(prs, "The solution in one sentence", "A verified, tenant-scoped, citation-first AI workspace", "PRODUCT")
+text(slide, "Every answer follows the same contract:", 0.95, 1.75, 6, 0.4, 19, TEXT, True)
+add_flow(slide, ["Verify identity", "Resolve tenant", "Retrieve owned chunks", "Ground answer", "Cite or refuse", "Write audit"])
+panel(slide, 1.0, 4.15, 3.45, 1.4, "USEFUL", "Natural-language search over company documents.", TEAL, 14)
+panel(slide, 4.95, 4.15, 3.45, 1.4, "EXPLAINABLE", "Answers carry document/page evidence.", BLUE, 14)
+panel(slide, 8.9, 4.15, 3.45, 1.4, "DEFENSIBLE", "Ownership and denial are testable server behavior.", AMBER, 14)
 
-slide = base_slide(prs, "Product surfaces", "The MVP is organized around the full knowledge-work lifecycle.")
-add_card(slide, 0.65, 1.75, 2.85, 3.9, "Authentication", "Registration\nEmail OTP verification\nVerified login\nJWT session\nRole-based access\n\nOutcome: trusted identity before data access.")
-add_card(slide, 3.65, 1.75, 2.85, 3.9, "Knowledge base", "PDF/TXT upload\nFile validation\nText extraction\nChunking\nDocument lifecycle status\n\nOutcome: searchable source material.")
-add_card(slide, 6.65, 1.75, 2.85, 3.9, "AI workspace", "Grounded chat\nSimilarity retrieval\nPage citations\nConversation history\nOut-of-domain refusal\n\nOutcome: useful and explainable answers.")
-add_card(slide, 9.65, 1.75, 2.85, 3.9, "Governance", "Audit logs\nLatency and token telemetry\nTenant quotas\nAdmin center\nIDOR simulator\n\nOutcome: operators can prove behavior.")
+# 05 - Users
+slide = base(prs, "Who uses tenantAI?", "A shared platform with separate responsibilities", "PRODUCT")
+panel(slide, 0.75, 1.8, 3.8, 3.6, "TENANT ADMINISTRATOR", "Creates the workspace, manages members, reviews quotas, and inspects audit telemetry.\n\nJury value: shows governance, not just a chatbot.", TEAL, 14)
+panel(slide, 4.8, 1.8, 3.8, 3.6, "KNOWLEDGE WORKER", "Uploads approved documents, asks questions, follows citations, and revisits private conversations.\n\nJury value: shows daily user utility.", BLUE, 14)
+panel(slide, 8.85, 1.8, 3.8, 3.6, "PLATFORM SUPERADMIN", "Reviews global tenant usage, provisions workspaces, and runs the controlled IDOR security simulation.\n\nJury value: shows SaaS operations.", AMBER, 14)
 
-slide = base_slide(prs, "Architecture", "Shared backend and database; tenant identity is derived from authenticated state.")
-add_card(slide, 0.7, 1.75, 2.6, 1.35, "Next.js", "Dark-first web dashboard\nAccessible auth and tenant UI")
-add_card(slide, 3.65, 1.75, 2.6, 1.35, "FastAPI", "Auth, RBAC, tenant guards\nHealth and API boundaries")
-add_card(slide, 6.6, 1.75, 2.6, 1.35, "SQLAlchemy", "Shared relational data\nOwnership and status relationships")
-add_card(slide, 9.55, 1.75, 2.6, 1.35, "RAG", "Scoped retrieval + citations\nGrounded response generation")
-add_text(slide, "Frontend → API gateway → database and document storage → RAG engine → grounded response", 1.0, 4.1, 11.2, 0.7, 20, ACCENT, True, PP_ALIGN.CENTER)
-add_text(slide, "All tenant-sensitive paths validate ownership server-side; frontend IDs are never trusted. The shared database is safe because every sensitive query carries the authenticated tenant boundary.", 1.0, 5.2, 11.2, 0.65, 14, TEXT, False, PP_ALIGN.CENTER)
+# 06 - Product surfaces
+slide = base(prs, "Product surfaces", "The MVP covers the complete knowledge-work loop", "PRODUCT")
+panel(slide, 0.65, 1.7, 2.85, 4.1, "IDENTITY", "Registration\nEmail OTP\nVerified login\nJWT session\nRole-based access\n\nUnverified accounts cannot enter protected APIs.", TEAL, 12)
+panel(slide, 3.65, 1.7, 2.85, 4.1, "KNOWLEDGE", "PDF/TXT/MD uploads\nValidation and quotas\nText extraction\nChunking and embeddings\nPENDING / READY / FAILED\n\nOnly READY content is searchable.", BLUE, 12)
+panel(slide, 6.65, 1.7, 2.85, 4.1, "ASSISTANT", "Tenant-scoped RAG\nCitations\nConversation history\nOut-of-domain refusal\nConfidence and latency\n\nUseful answers remain traceable.", TEAL, 12)
+panel(slide, 9.65, 1.7, 2.85, 4.1, "CONTROL", "Audit logs\nUsage telemetry\nTenant quotas\nAdmin center\nIDOR simulator\n\nSecurity is visible to operators.", AMBER, 12)
 
-slide = base_slide(prs, "Workflow automation", "Document Upload → File Validation → Extraction → Chunking → Embeddings → Tenant-Scoped Indexing")
-steps = ["Upload", "Validate", "Extract", "Chunk", "Embed", "Index", "Retrieve", "Cite"]
-for i, step in enumerate(steps):
-    x = 0.55 + i * 1.58
-    add_card(slide, x, 2.2, 1.25, 1.2, str(i + 1), step)
-add_text(slide, "Processing status is persisted as PENDING / PROCESSING / READY / FAILED with safe retry visibility. Unsupported formats, quotas, and parser failures produce explicit user-facing outcomes.", 1.0, 4.5, 11.2, 0.7, 15, TEXT, False, PP_ALIGN.CENTER)
+# 07 - Architecture
+slide = base(prs, "Architecture: one system, one source of truth", "The browser never decides which tenant's data it may read", "ENGINEERING")
+panel(slide, 0.7, 1.75, 2.6, 1.45, "NEXT.JS", "Accessible dashboard, auth, chat, documents, admin views", BLUE)
+panel(slide, 3.65, 1.75, 2.6, 1.45, "FASTAPI", "JWT verification, RBAC, tenant guards, API contracts", TEAL)
+panel(slide, 6.6, 1.75, 2.6, 1.45, "SQLALCHEMY", "Users, tenants, documents, chunks, conversations, logs", AMBER)
+panel(slide, 9.55, 1.75, 2.6, 1.45, "RAG ENGINE", "Scoped retrieval, grounded synthesis, citations, refusal", TEAL)
+add_flow(slide, ["Browser", "Auth gateway", "Tenant filter", "Private data", "RAG", "Audited response"], y=4.05, start=0.55, width=1.72, gap=0.18)
+text(slide, "Invariant: tenant_id comes from verified server-side identity. Client-supplied tenant IDs are ignored for regular users.", 1.0, 5.75, 11.2, 0.55, 16, TEXT, True, PP_ALIGN.CENTER)
 
-slide = base_slide(prs, "Security model", "Verified identity and server-side scoping protect every workspace.")
-add_card(slide, 0.75, 1.75, 3.8, 3.65, "Email verification", "OTP is cryptographically random, hashed at rest, expires after five minutes, and is rate limited.\n\nEvidence: only verified users receive login tokens.")
-add_card(slide, 4.8, 1.75, 3.8, 3.65, "Tenant isolation", "Documents, chunks, conversations, logs, and retrieval queries require the authenticated tenant scope.\n\nEvidence: cross-tenant resources return hidden 404 responses.")
-add_card(slide, 8.85, 1.75, 3.8, 3.65, "Auditability", "Login, upload, deletion, query, and cross-tenant probes are recorded for review.\n\nEvidence: `/logs` shows action, outcome, actor, and tenant context.")
+# 08 - Data model
+slide = base(prs, "Data model: where isolation lives", "Every private relationship has an ownership boundary", "ENGINEERING")
+panel(slide, 0.5, 1.75, 2.35, 4.0, "TENANT", "Company workspace\nPlan and quotas\nDomain\nOwns private records", TEAL, 12)
+panel(slide, 3.0, 1.75, 2.35, 4.0, "USER", "Verified email\nPassword hash\nRole\nBelongs to tenant", BLUE, 12)
+panel(slide, 5.5, 1.75, 2.35, 4.0, "DOCUMENT", "Tenant-owned file\nParser status\nSource metadata\nSafe deletion scope", AMBER, 12)
+panel(slide, 8.0, 1.75, 2.35, 4.0, "CHUNK", "Text segment\nEmbedding vector\nPage metadata\nTenant-scoped search", TEAL, 12)
+panel(slide, 10.5, 1.75, 2.35, 4.0, "CONVERSATION", "Owner user\nTenant relationship\nMessages and citations\nPrivate history", BLUE, 12)
+text(slide, "A valid numeric ID is never enough: the authenticated tenant and, for conversations, the owning user must also match.", 0.8, 6.15, 11.8, 0.4, 14, TEAL, True, PP_ALIGN.CENTER)
 
-slide = base_slide(prs, "Security proof: the IDOR demo", "The project demonstrates prevention, not only a security claim.")
-add_text(slide, "Attacker scenario", 0.9, 1.7, 3.0, 0.4, 18, ACCENT, True)
-add_text(slide, "GreenLeaf user attempts to fetch TechNova document ID #1.", 0.9, 2.2, 4.5, 0.9, 19, TEXT, True)
-add_text(slide, "Server enforcement", 5.0, 1.7, 3.0, 0.4, 18, ACCENT, True)
-add_text(slide, "JWT tenant identity overrides client-supplied IDs and applies tenant filters to the query.\n\nThe attacker cannot select a different tenant by changing a URL or request body.", 5.0, 2.2, 3.5, 1.75, 16, TEXT, True)
-add_text(slide, "Observed result", 9.0, 1.7, 3.0, 0.4, 18, ACCENT, True)
-add_text(slide, "HTTP 404\n0 bytes leaked\ncross_tenant_denied audit event\n\nThe response avoids confirming another tenant's resource.", 9.0, 2.2, 3.4, 2.15, 18, TEXT, True)
-add_text(slide, "404 instead of 403 also avoids revealing whether another tenant's resource exists.", 1.0, 5.6, 11.2, 0.5, 16, ACCENT, False, PP_ALIGN.CENTER)
+# 09 - RAG
+slide = base(prs, "How grounded RAG works", "The assistant is constrained by approved workspace evidence", "AI")
+add_flow(slide, ["Question", "Embed", "Tenant filter", "Rank chunks", "Ground prompt", "Citations"])
+panel(slide, 0.9, 4.05, 3.55, 1.55, "IN-DOMAIN", "TechNova: “What is the battery warranty?”\n\nReturns an answer with the hardware manual citation.", TEAL, 13)
+panel(slide, 4.9, 4.05, 3.55, 1.55, "OUT-OF-DOMAIN", "GreenLeaf: “What is the UltraBook warranty?”\n\nReturns a refusal with no unauthorized citations.", AMBER, 13)
+panel(slide, 8.9, 4.05, 3.55, 1.55, "TRACEABILITY", "The response preserves source title, page, excerpt, confidence, latency, and token usage for review.", BLUE, 13)
 
-slide = base_slide(prs, "RAG behavior", "Answers are constrained by the verified workspace knowledge base.")
-add_card(slide, 0.75, 1.8, 3.8, 3.6, "1. Retrieve", "The query is embedded and compared against chunks from READY documents in the caller's tenant only.\n\nFilter: tenant ID + document status + relevance.")
-add_card(slide, 4.8, 1.8, 3.8, 3.6, "2. Ground", "Relevant chunks are passed as context to the response layer; unsupported claims are not treated as facts.\n\nTraceability: source text and page metadata stay attached.")
-add_card(slide, 8.85, 1.8, 3.8, 3.6, "3. Cite or refuse", "The answer includes document/page evidence or explicitly refuses when the workspace has no support.\n\nSafety: absence of evidence is communicated instead of invented.")
-add_text(slide, "Example: GreenLeaf can answer its 30-day return policy, but cannot answer TechNova's laptop warranty question.", 0.9, 6.0, 11.5, 0.45, 15, ACCENT, False, PP_ALIGN.CENTER)
+# 10 - Security layers
+slide = base(prs, "Defense in depth", "No single control carries the whole security model", "SECURITY")
+panel(slide, 0.75, 1.7, 2.85, 3.95, "IDENTITY", "Email OTP verification\nBcrypt password hashing\nJWT algorithm allowlist\nActive-user check\n\nStops anonymous and unverified access.", TEAL, 12)
+panel(slide, 3.75, 1.7, 2.85, 3.95, "AUTHORIZATION", "SuperAdmin and tenant-admin guards\nOwner checks for conversations\nTenant predicates on resources\nHidden 404 responses\n\nStops horizontal and vertical access.", BLUE, 12)
+panel(slide, 6.75, 1.7, 2.85, 3.95, "DATA", "READY-only retrieval\nPrivate storage direction\nSafe filename handling\nGeneric processing errors\n\nReduces unsafe content and leakage.", AMBER, 12)
+panel(slide, 9.75, 1.7, 2.85, 3.95, "OBSERVABILITY", "Audit events\nLatency/tokens\nSecurity simulation\nRedacted admin logs\nSecurity response headers\n\nMakes controls provable.", TEAL, 12)
 
-slide = base_slide(prs, "Live demo path", "Use real data and label anything not yet deployed.")
-add_text(slide, "1  Register company", 1.0, 1.8, 5.2, 0.5, 20, TEXT, True)
-add_text(slide, "2  Verify OTP from SMTP or development log", 1.0, 2.5, 6.8, 0.5, 20, TEXT, True)
-add_text(slide, "3  Upload a PDF/TXT/MD document", 1.0, 3.2, 6.8, 0.5, 20, TEXT, True)
-add_text(slide, "4  Ask a grounded question and inspect citations", 1.0, 3.9, 7.5, 0.5, 20, TEXT, True)
-add_text(slide, "5  Register a second company and verify isolation", 1.0, 4.6, 8.4, 0.5, 20, TEXT, True)
-add_text(slide, "6  Open logs and explain the evidence: actor, tenant, action, result, latency, and citations.", 1.0, 5.25, 10.5, 0.45, 17, TEXT, True)
-add_text(slide, "Optional follow-up: connect the same tenant-scoped APIs to a Telegram worker after deployment.", 1.0, 6.55, 11.0, 0.3, 12, ACCENT)
+# 11 - IDOR proof
+slide = base(prs, "The security moment: prove the IDOR block", "A jury can observe the control in real time", "SECURITY")
+text(slide, "ATTACKER", 0.85, 1.75, 2.5, 0.3, 15, RED, True)
+text(slide, "GreenLeaf attempts to fetch TechNova document #1.", 0.85, 2.15, 3.2, 0.9, 20, TEXT, True)
+text(slide, "ENFORCEMENT", 4.95, 1.75, 2.5, 0.3, 15, BLUE, True)
+text(slide, "JWT tenant identity overrides client input. Query requires matching tenant ownership.", 4.95, 2.15, 3.3, 1.2, 18, TEXT, True)
+text(slide, "RESULT", 9.05, 1.75, 2.5, 0.3, 15, TEAL, True)
+text(slide, "HTTP 404\n0 bytes leaked\nAudit event written", 9.05, 2.15, 3.2, 1.3, 23, TEXT, True)
+panel(slide, 1.0, 4.65, 11.2, 1.0, "WHY 404?", "A hidden 404 avoids confirming that another tenant's resource exists. The denial is also recorded for the tenant's security trail.", AMBER, 14)
 
-slide = base_slide(prs, "Demo credentials and data", "Use these legacy fixtures only for the jury walkthrough; do not use them in production.")
-add_card(slide, 0.75, 1.75, 3.8, 3.75, "TechNova Solutions", "Admin: admin@technova.com\nPassword: DemoPass123!\n\nKnowledge: UltraBook Pro X15 hardware manual\n\nAsk: “What is the battery warranty?”")
-add_card(slide, 4.8, 1.75, 3.8, 3.75, "GreenLeaf Retail", "Admin: admin@greenleaf.com\nPassword: DemoPass123!\n\nKnowledge: customer refund and return policy\n\nAsk: “What is the return window?”")
-add_card(slide, 8.85, 1.75, 3.8, 3.75, "Best demo sequence", "Login as TechNova → ask a warranty question → inspect citation → switch to GreenLeaf → verify invisibility → run the IDOR simulator → inspect logs.")
-add_text(slide, "These accounts are presentation fixtures and intentionally remain unchanged by request.", 1.0, 6.15, 11.2, 0.35, 13, MUTED, False, PP_ALIGN.CENTER)
+# 12 - Auth lifecycle
+slide = base(prs, "Authentication lifecycle", "Trust is established before the first protected request", "SECURITY")
+add_flow(slide, ["Register", "Generate OTP", "Hash + expire", "Verify email", "Issue JWT", "Check active user"])
+panel(slide, 1.0, 4.25, 3.45, 1.45, "OTP CONTROLS", "Cryptographically random code, hashed storage, five-minute expiry, attempt limit, resend cooldown.", TEAL, 12)
+panel(slide, 4.95, 4.25, 3.45, 1.45, "SESSION CONTROLS", "JWT algorithm allowlist, active-user lookup, production secret length validation.", BLUE, 12)
+panel(slide, 8.9, 4.25, 3.45, 1.45, "USER EXPERIENCE", "Clear error messages, development-log OTP fallback, and no silent success on email failure.", AMBER, 12)
 
-slide = base_slide(prs, "Deployment and testing", "Move from local proof to a repeatable production setup.")
-add_card(slide, 0.75, 1.75, 3.8, 3.75, "Local stack", "Next.js at :3000\nFastAPI at :8001\nSQLite for zero-dependency development\nPytest for API and isolation checks\n\nFast feedback: run frontend and backend independently.")
-add_card(slide, 4.8, 1.75, 3.8, 3.75, "Production shape", "Render frontend + backend\nManaged PostgreSQL/pgvector\nSMTP provider\nPersistent object storage\nEnvironment-managed secrets\n\nScale path: worker service for async processing.")
-add_card(slide, 8.85, 1.75, 3.8, 3.75, "Release gates", "Health endpoint\nStrict CORS\nNo development reload\nRegistration and OTP test\nTenant isolation regression test\n\nGate: no deployment is called complete until login and chat work.")
+# 13 - Upload pipeline
+slide = base(prs, "Document pipeline", "From file upload to searchable evidence", "ENGINEERING")
+add_flow(slide, ["Upload", "Validate", "Extract", "Chunk", "Embed", "Index", "Retrieve", "Cite"], y=2.15, start=0.48, width=1.45, gap=0.16)
+text(slide, "Supported demo formats: PDF, TXT, and MD", 0.95, 4.2, 5.4, 0.4, 17, TEAL, True)
+text(slide, "Failure behavior is explicit: unsupported type, size limit, quota, parser failure, or embedding failure.", 0.95, 4.8, 7.6, 0.55, 15, TEXT)
+panel(slide, 9.1, 4.05, 3.35, 1.55, "STATUS MODEL", "PENDING → PROCESSING → READY\nor FAILED with safe user-facing messaging.", AMBER, 13)
 
-slide = base_slide(prs, "API and observability", "The platform exposes clear boundaries for UI, integrations, and operators.")
-add_card(slide, 0.75, 1.75, 3.8, 3.8, "Auth APIs", "register\nverify-email\nresend-verification\nlogin\nme\n\nBoundary: public registration ends at verified identity.")
-add_card(slide, 4.8, 1.75, 3.8, 3.8, "Knowledge APIs", "documents\nupload\ninspect/delete document\nchat message\nconversation history\n\nBoundary: all resources resolve through tenant ownership.")
-add_card(slide, 8.85, 1.75, 3.8, 3.8, "Operator APIs", "logs and telemetry\nadmin stats\ntenant summaries\nprovision tenants\nsecurity simulation\n\nBoundary: global views require SuperAdmin role.")
-add_text(slide, "Every sensitive operation is measurable: actor, tenant, action, outcome, latency, and resource context.", 0.95, 6.15, 11.4, 0.35, 14, ACCENT, False, PP_ALIGN.CENTER)
+# 14 - Telegram
+slide = base(prs, "One knowledge layer, multiple channels", "The Telegram worker reuses the same tenant-aware behavior", "INTEGRATION")
+panel(slide, 0.75, 1.75, 3.8, 3.85, "AUTHENTICATED SESSION", "/start and login establish a tenant-aware session.\n\nThe inactivity window is sliding: authenticated activity refreshes it; 120 seconds without activity expires it.", TEAL, 14)
+panel(slide, 4.8, 1.75, 3.8, 3.85, "KNOWLEDGE COMMANDS", "/chat\n/documents\n/upload\n/conversations\n/audits\n/telemetry\n\nThe bot exposes the same document and chat workflow.", BLUE, 14)
+panel(slide, 8.85, 1.75, 3.8, 3.85, "ADMIN COMMANDS", "/settings\n/setcompany\n/setdomain\n\nAdmin-only changes, explicit upload results, generic processing errors, and command menu registration.", AMBER, 13)
 
-slide = base_slide(prs, "Evaluation snapshot", "How the implementation maps to a jury rubric.")
-add_card(slide, 0.75, 1.75, 3.8, 3.85, "Working MVP", "Authentication, document upload, RAG chat, citations, tenant dashboards, logs, and an interactive security demo.\n\nProof: local backend tests pass and the production frontend build generates 16 routes.")
-add_card(slide, 4.8, 1.75, 3.8, 3.85, "Differentiation", "Security is visible and testable: out-of-domain refusal, tenant-scoped retrieval, 404 IDOR protection, and audit evidence.\n\nProof: the jury can trigger and inspect the denial.")
-add_card(slide, 8.85, 1.75, 3.8, 3.85, "Business value", "Reusable company knowledge, faster support decisions, lower information risk, and a path to per-tenant SaaS pricing.\n\nModel: charge per workspace, seats, storage, or usage.")
-add_text(slide, "Honest status: deployment verification, object storage, OCR, and formal migrations remain production follow-up work.", 0.9, 6.15, 11.5, 0.4, 13, MUTED, False, PP_ALIGN.CENTER)
+# 15 - Observability
+slide = base(prs, "Observability: security becomes evidence", "Operators can answer what happened, where, and why", "GOVERNANCE")
+metric(slide, 0.9, 1.8, 2.25, "WHO", "user / role", TEAL)
+metric(slide, 3.45, 1.8, 2.25, "WHERE", "tenant", BLUE)
+metric(slide, 6.0, 1.8, 2.25, "WHAT", "action / outcome", AMBER)
+metric(slide, 8.55, 1.8, 2.25, "HOW FAST", "latency", TEAL)
+metric(slide, 11.1, 1.8, 1.3, "COST", "tokens", BLUE)
+panel(slide, 1.0, 3.65, 5.35, 1.75, "SECURITY EVENTS", "Login, upload, deletion, chat, denied resource access, and IDOR simulation are recorded. Prompt content is not included in chat telemetry.", TEAL, 14)
+panel(slide, 6.95, 3.65, 5.35, 1.75, "PRIVACY BOUNDARY", "Audit access is limited to tenant administrators and SuperAdmins. Email, IP addresses, and chat prompt excerpts are redacted from responses.", BLUE, 14)
 
-slide = base_slide(prs, "Data model and isolation boundary", "Tenant identity is carried through every relationship that contains private knowledge.")
-add_card(slide, 0.55, 1.7, 2.35, 3.95, "Tenant", "Company workspace\nSlug and quota\nAdmin membership\nOwns all private records\n\nBoundary: root of ownership.")
-add_card(slide, 3.05, 1.7, 2.35, 3.95, "User", "Email and password hash\nVerified status\nRole: admin/user\nBelongs to one tenant\n\nBoundary: JWT carries identity.")
-add_card(slide, 5.55, 1.7, 2.35, 3.95, "Document", "Tenant-owned file\nPENDING → READY\nParser metadata\nSafe deletion boundary\n\nBoundary: status gates retrieval.")
-add_card(slide, 8.05, 1.7, 2.35, 3.95, "Chunks", "Text segments\nEmbedding vectors\nPage/source metadata\nTenant-scoped retrieval\n\nBoundary: no global search.")
-add_card(slide, 10.55, 1.7, 2.35, 3.95, "Conversation", "Tenant-owned thread\nMessages and citations\nAudit-linked question\nNo cross-tenant joins\n\nBoundary: history stays private.")
-add_text(slide, "Security invariant: a valid resource ID is not sufficient; the authenticated tenant must also own the resource.", 0.85, 6.15, 11.6, 0.4, 15, ACCENT, False, PP_ALIGN.CENTER)
+# 16 - Demo script
+slide = base(prs, "The 7-minute jury demo", "A rehearsable sequence with a visible payoff", "DEMO")
+steps = [
+    ("01", "Open landing page", "Explain secure workspace promise."),
+    ("02", "Login as TechNova", "Show private document list."),
+    ("03", "Ask warranty question", "Show grounded response and citation."),
+    ("04", "Switch to GreenLeaf", "Show a separate knowledge boundary."),
+    ("05", "Ask TechNova question", "Show refusal with no foreign citation."),
+    ("06", "Run IDOR simulator", "Show 404 and zero leaked bytes."),
+    ("07", "Open telemetry", "Show the recorded security event."),
+]
+for i, (num, title, body) in enumerate(steps):
+    y = 1.55 + i * 0.7
+    text(slide, num, 0.9, y, 0.5, 0.3, 14, TEAL, True)
+    text(slide, title, 1.55, y, 3.2, 0.3, 15, TEXT, True)
+    text(slide, body, 5.0, y, 7.0, 0.3, 13, MUTED)
 
-slide = base_slide(prs, "Request security flow", "A typical chat request is authorized before retrieval or generation.")
-steps = ["JWT\nverified", "User + role\nloaded", "Tenant ID\nresolved", "Documents\nfiltered", "Chunks\nretrieved", "Answer +\ncitations", "Audit\nwritten"]
-for i, step in enumerate(steps):
-    x = 0.45 + i * 1.82
-    add_card(slide, x, 2.1, 1.5, 1.65, str(i + 1), step)
-add_text(slide, "Client input: question only. Tenant identity, ownership, and authorization are server decisions.", 1.0, 4.65, 11.2, 0.45, 17, TEXT, False, PP_ALIGN.CENTER)
-add_text(slide, "Failure paths are explicit: 401 unauthenticated, 403 insufficient role, 404 hidden cross-tenant resource, or a grounded refusal.", 0.9, 5.55, 11.5, 0.5, 15, ACCENT, False, PP_ALIGN.CENTER)
+# 17 - Credentials
+slide = base(prs, "Jury demo fixtures", "Use only for demonstration; rotate before real users or production", "DEMO")
+panel(slide, 0.75, 1.8, 3.8, 3.8, "TECHNOVA SOLUTIONS", "Admin: admin@technova.com\nPassword: DemoPass123!\n\nKnowledge: UltraBook Pro X15 hardware manual\n\nAsk: “What is the battery warranty?”", TEAL, 14)
+panel(slide, 4.8, 1.8, 3.8, 3.8, "GREENLEAF RETAIL", "Admin: admin@greenleaf.com\nPassword: DemoPass123!\n\nKnowledge: customer refund and return policy\n\nAsk: “What is the return window?”", BLUE, 14)
+panel(slide, 8.85, 1.8, 3.8, 3.8, "PRESENTATION RULE", "Do not use these credentials in production.\n\nUse them to demonstrate isolation, citations, refusal behavior, and audit evidence.\n\nThe requested fixtures remain unchanged.", AMBER, 14)
 
-slide = base_slide(prs, "Telegram assistant", "The bot uses the same tenant-scoped backend concepts instead of creating a second data silo.")
-add_card(slide, 0.75, 1.75, 3.8, 3.85, "Authentication", "/start and login flow\nTenant-aware Telegram session\n120-second sliding inactivity timeout\nSession state persisted in the database\n\nBehavior: activity refreshes the window; only inactivity expires it.")
-add_card(slide, 4.8, 1.75, 3.8, 3.85, "Commands", "/chat\n/documents\n/upload\n/conversations\n/audits\n/telemetry\n\nResult: the bot exposes the same knowledge workflow through chat.")
-add_card(slide, 8.85, 1.75, 3.8, 3.85, "Administration", "/settings\n/setcompany\n/setdomain\nAdmin-only settings changes\nFriendly upload success/failure responses\n\nSafety: failed processing does not expose internal exception details.")
-add_text(slide, "Operational rule: every authenticated command refreshes activity; only inactivity expires the session.", 0.95, 6.15, 11.4, 0.35, 14, ACCENT, False, PP_ALIGN.CENTER)
+# 18 - Testing
+slide = base(prs, "Verification before the pitch", "The product is tested at the same boundaries the jury will inspect", "QUALITY")
+metric(slide, 0.95, 1.75, 2.45, "23", "backend tests passing", TEAL)
+metric(slide, 3.75, 1.75, 2.45, "14", "frontend routes built", BLUE)
+metric(slide, 6.55, 1.75, 2.45, "0", "bounds issues in deck", AMBER)
+metric(slide, 9.35, 1.75, 2.45, "404", "hidden IDOR result", TEAL)
+panel(slide, 1.0, 3.65, 3.55, 1.7, "REGRESSION TESTS", "Auth verification, tenant document isolation, RAG citations, admin access, conversation privacy, and Telegram session expiry.", TEAL, 13)
+panel(slide, 4.9, 3.65, 3.55, 1.7, "FRONTEND CHECKS", "Production TypeScript build, accessible controls, responsive flows, reduced-motion support, and role-aware navigation.", BLUE, 13)
+panel(slide, 8.8, 3.65, 3.55, 1.7, "HONEST STATUS", "Deployment verification, object storage, OCR, async processing, and formal migrations remain roadmap work.", AMBER, 13)
 
-slide = base_slide(prs, "Quality and verification", "Evidence used to reduce regression risk before the jury demo.")
-add_card(slide, 0.75, 1.75, 3.8, 3.8, "Backend tests", "Authentication and verification\nTenant authorization\nAdmin access\nDocument lifecycle\nRAG citations\nTelegram session expiry\n\nPurpose: protect security and behavior regressions.")
-add_card(slide, 4.8, 1.75, 3.8, 3.8, "Frontend checks", "Production build\n16 generated routes\nAccessible labels and focus states\nResponsive landing/auth flows\nReduced-motion support\n\nPurpose: verify the jury-facing path builds cleanly.")
-add_card(slide, 8.85, 1.75, 3.8, 3.8, "Operational checks", "Health endpoint\nStrict CORS defaults\nProduction reload disabled\nGeneric user-facing failures\nDiff and presentation validation\n\nPurpose: avoid demo-only configuration surprises.")
-add_text(slide, "The demo separates verified behavior from roadmap items so the jury can evaluate the working MVP honestly.", 0.95, 6.15, 11.4, 0.35, 14, ACCENT, False, PP_ALIGN.CENTER)
+# 19 - Deployment
+slide = base(prs, "From local proof to Render", "Production is a controlled release process", "OPERATIONS")
+add_flow(slide, ["Create blueprint", "Provision DB", "Set secrets", "Deploy API", "Deploy UI", "Smoke test"])
+panel(slide, 0.9, 4.15, 3.6, 1.55, "RENDER SERVICES", "Frontend, FastAPI backend, PostgreSQL, and optional Telegram worker.", TEAL, 13)
+panel(slide, 4.85, 4.15, 3.6, 1.55, "REQUIRED SECRETS", "SECRET_KEY, DATABASE_URL, CORS_ORIGINS, SMTP, AI provider keys, Telegram token.", BLUE, 13)
+panel(slide, 8.8, 4.15, 3.6, 1.55, "SMOKE TEST", "Health → register → verify → login → upload → chat → logs → isolation probe.", AMBER, 13)
 
-slide = base_slide(prs, "Render deployment runbook", "A repeatable path from the repository to a public demo environment.")
-add_text(slide, "1  Create Blueprint", 0.9, 1.7, 5.3, 0.45, 19, TEXT, True)
-add_text(slide, "Select the repository and apply render.yaml.", 0.9, 2.15, 5.5, 0.35, 14, MUTED)
-add_text(slide, "2  Configure secrets", 0.9, 2.85, 5.3, 0.45, 19, TEXT, True)
-add_text(slide, "DATABASE_URL, SECRET_KEY, CORS_ORIGINS, SMTP, and Telegram token.", 0.9, 3.3, 5.8, 0.55, 14, MUTED)
-add_text(slide, "3  Seed and verify", 0.9, 4.0, 5.3, 0.45, 19, TEXT, True)
-add_text(slide, "Run the explicit jury seed command, then test health, login, upload, chat, and logs.", 0.9, 4.45, 6.0, 0.7, 14, MUTED)
-add_card(slide, 7.3, 1.7, 5.2, 3.7, "Production checklist", "Frontend URL added to backend CORS\nManaged PostgreSQL connected\nPersistent file storage selected\nSMTP delivery verified\nSecrets stored in Render, not Git\nWorker health and logs monitored\n\nSmoke test: health → register → verify → login → upload → chat → logs.")
-add_text(slide, "Deployment is an operator-controlled step; no paid or irreversible action is performed by the application.", 0.9, 6.2, 11.5, 0.35, 14, ACCENT, False, PP_ALIGN.CENTER)
+# 20 - Security hardening
+slide = base(prs, "Security hardening shipped", "The implementation closes common multi-tenant failure modes", "SECURITY")
+panel(slide, 0.75, 1.7, 2.85, 4.0, "SECRETS", "Removed hardcoded database and JWT secrets from Docker Compose.\n\nProduction now requires environment-managed values and a strong signing key.", TEAL, 12)
+panel(slide, 3.75, 1.7, 2.85, 4.0, "OWNERSHIP", "Conversation read, append, and delete operations require both tenant ownership and owning user.\n\nSame-tenant users cannot hijack threads.", BLUE, 12)
+panel(slide, 6.75, 1.7, 2.85, 4.0, "EXPOSURE", "Logs are admin-only and redacted. Production docs are disabled. Health errors avoid raw internals. Security headers are enabled.", AMBER, 12)
+panel(slide, 9.75, 1.7, 2.85, 4.0, "FRONTEND", "Navigation hides audit/admin surfaces from unauthorized roles and avoids unnecessary log requests for regular users.", TEAL, 12)
 
-slide = base_slide(prs, "Risks and mitigations", "The design acknowledges what can fail and how the platform responds.")
-add_card(slide, 0.75, 1.75, 3.8, 3.85, "Hallucination risk", "Mitigation: tenant-scoped retrieval, grounded prompts, citations, and explicit out-of-domain refusal.")
-add_card(slide, 4.8, 1.75, 3.8, 3.85, "Data leakage risk", "Mitigation: server-side tenant filters, hidden 404 responses, role guards, audit events, and IDOR simulation.")
-add_card(slide, 8.85, 1.75, 3.8, 3.85, "Production scale risk", "Mitigation roadmap: Alembic migrations, object storage, async workers, OCR, rate limits, and managed observability.")
-add_text(slide, "Security is treated as a product feature and an observable operating process, not a UI promise.", 0.95, 6.15, 11.4, 0.35, 14, ACCENT, False, PP_ALIGN.CENTER)
+# 21 - Business
+slide = base(prs, "Why this can become a SaaS product", "Security and utility create a credible expansion path", "BUSINESS")
+panel(slide, 0.75, 1.75, 3.8, 3.8, "CUSTOMER VALUE", "Reduce repeated support questions.\nShorten onboarding.\nFind policy answers faster.\nKeep evidence attached to decisions.\n\nThe buyer gets productivity without giving up tenant boundaries.", TEAL, 14)
+panel(slide, 4.8, 1.75, 3.8, 3.8, "PRICING SURFACES", "Per workspace\nPer seat\nStorage and document volume\nAI query usage\nPremium audit and retention\n\nUsage telemetry makes these surfaces measurable.", BLUE, 14)
+panel(slide, 8.85, 1.75, 3.8, 3.8, "EXPANSION", "OCR for scanned files\nAsync workers\nPrivate object storage\nSlack/Teams/Telegram channels\nSAML/SCIM and enterprise policy controls", AMBER, 14)
 
-slide = base_slide(prs, "Jury questions: concise answers", "Use this slide as a speaker prompt during evaluation.")
-add_card(slide, 0.65, 1.7, 2.85, 4.0, "Why multi-tenant?", "A company assistant must be useful without mixing confidential workspaces. Tenant scope is enforced in backend queries.")
-add_card(slide, 3.65, 1.7, 2.85, 4.0, "Why RAG?", "Company policies change. Retrieval grounds answers in the latest approved documents instead of model memory.")
-add_card(slide, 6.65, 1.7, 2.85, 4.0, "How do you prove security?", "Run the IDOR simulator, observe 404 and zero leaked bytes, then inspect the audit event.")
-add_card(slide, 9.65, 1.7, 2.85, 4.0, "What is next?", "Production migrations, storage, OCR, async processing, and verified Render rollout.")
+# 22 - Roadmap
+slide = base(prs, "Roadmap: from MVP to production platform", "Prioritized by reliability, scale, and enterprise readiness", "ROADMAP")
+panel(slide, 0.75, 1.75, 3.8, 3.8, "NOW", "Working tenant-scoped APIs\nGrounded RAG and citations\nOTP auth and RBAC\nAudit telemetry\nIDOR simulator\nAccessible web UI", TEAL, 14)
+panel(slide, 4.8, 1.75, 3.8, 3.8, "NEXT", "Alembic migrations\nPrivate object storage\nRate limiting and WAF\nDependency scanning\nVerified Render rollout\nOperational alerting", BLUE, 14)
+panel(slide, 8.85, 1.75, 3.8, 3.8, "LATER", "OCR and async ingestion\nSAML/SCIM\nRetention policies\nFeedback and evaluation sets\nTenant-level model policies\nEnterprise integrations", AMBER, 14)
 
-slide = base_slide(prs, "Conclusion and roadmap", "Secure foundations first; integrate only what can be verified.")
-add_card(slide, 0.75, 1.8, 3.8, 3.6, "Now", "Tenant-scoped FastAPI APIs, grounded RAG, OTP registration, dark-first auth UI, audit telemetry.")
-add_card(slide, 4.8, 1.8, 3.8, 3.6, "Next", "Complete Telegram account linking and 120-second session enforcement on a shared bot service.")
-add_card(slide, 8.85, 1.8, 3.8, 3.6, "Future", "Async workers, OCR, object storage, richer feedback/export, and managed deployment verification.")
-add_text(slide, "Build trust into the architecture, then make the demo visible.", 1.0, 6.25, 11.2, 0.4, 18, ACCENT, True, PP_ALIGN.CENTER)
+# 23 - Q&A
+slide = base(prs, "Jury questions: concise answers", "Use these as speaking prompts", "CLOSE")
+panel(slide, 0.65, 1.65, 2.85, 4.15, "WHY MULTI-TENANT?", "Because a company assistant must be useful without mixing confidential workspaces. Tenant scope is enforced in backend queries.", TEAL, 13)
+panel(slide, 3.65, 1.65, 2.85, 4.15, "WHY RAG?", "Company knowledge changes. Retrieval grounds answers in approved documents and provides evidence instead of relying on model memory.", BLUE, 13)
+panel(slide, 6.65, 1.65, 2.85, 4.15, "HOW PROVE SECURITY?", "Run the IDOR simulator, observe 404 and zero leaked bytes, then inspect the audit event and tenant boundary.", AMBER, 13)
+panel(slide, 9.65, 1.65, 2.85, 4.15, "WHAT NEXT?", "Complete production infrastructure: migrations, storage, async processing, OCR, rate limiting, and verified deployment.", TEAL, 13)
+
+# 24 - Close
+slide = base(prs, "The takeaway", "Make the answer useful. Make the boundary provable.", "CLOSE")
+text(slide, "tenantAI is not only a chatbot.", 1.0, 1.8, 11.3, 0.55, 28, TEXT, True, PP_ALIGN.CENTER)
+text(slide, "It is a secure knowledge operating layer for companies that need speed, evidence, and separation.", 1.2, 2.7, 10.9, 0.8, 22, TEAL, True, PP_ALIGN.CENTER)
+metric(slide, 2.0, 4.45, 2.3, "USEFUL", "grounded answers", TEAL)
+metric(slide, 5.5, 4.45, 2.3, "SAFE", "tenant boundary", BLUE)
+metric(slide, 9.0, 4.45, 2.3, "PROVABLE", "audit evidence", AMBER)
+text(slide, "Thank you | Live demo begins with TechNova login", 1.0, 6.35, 11.3, 0.3, 14, MUTED, False, PP_ALIGN.CENTER)
 
 prs.save(OUT)
 print(OUT)
